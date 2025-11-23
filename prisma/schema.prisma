@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model with role-based access control
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dashboards Dashboard[]
+  layouts    Layout[]
+  schedules  Schedule[]
+  shares     DashboardShare[]
+
+  @@index([email])
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+// Dashboard model
+model Dashboard {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  userId      String
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  widgets Widget[]
+  layouts Layout[]
+  shares  DashboardShare[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("dashboards")
+}
+
+// Widget model for dashboard components
+model Widget {
+  id          String     @id @default(uuid())
+  dashboardId String
+  type        WidgetType
+  title       String
+  config      Json
+  dataSource  String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardId])
+  @@map("widgets")
+}
+
+enum WidgetType {
+  LINE_CHART
+  BAR_CHART
+  PIE_CHART
+  AREA_CHART
+  HEATMAP
+  SCATTER_CHART
+  TABLE
+  METRIC
+}
+
+// Layout model for personalized dashboard layouts
+model Layout {
+  id          String   @id @default(uuid())
+  userId      String
+  dashboardId String
+  layout      Json
+  theme       Theme    @default(LIGHT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dashboardId])
+  @@index([userId])
+  @@index([dashboardId])
+  @@map("layouts")
+}
+
+enum Theme {
+  LIGHT
+  DARK
+}
+
+// Dashboard sharing model
+model DashboardShare {
+  id          String     @id @default(uuid())
+  dashboardId String
+  userId      String
+  permission  Permission @default(VIEW)
+  createdAt   DateTime   @default(now())
+
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dashboardId, userId])
+  @@index([dashboardId])
+  @@index([userId])
+  @@map("dashboard_shares")
+}
+
+enum Permission {
+  VIEW
+  EDIT
+  ADMIN
+}
+
+// Schedule model for automated reports
+model Schedule {
+  id          String         @id @default(uuid())
+  userId      String
+  name        String
+  cronExpr    String
+  dashboardId String
+  format      ExportFormat[]
+  recipients  String[]
+  isActive    Boolean        @default(true)
+  lastRun     DateTime?
+  nextRun     DateTime
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([nextRun])
+  @@map("schedules")
+}
+
+enum ExportFormat {
+  PDF
+  CSV
+  XLSX
+}

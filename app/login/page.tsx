@@ -34,7 +34,7 @@ export default function LoginPage() {
                         Sign in to Analytics
                     </h2>
                     <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                        Or use demo@example.com / password123
+                        Use admin@dashboard.com / admin1307 for testing
                     </p>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

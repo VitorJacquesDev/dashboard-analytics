@@ -116,6 +116,36 @@ export class WidgetController {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
     }
+
+    /**
+     * Get widget data
+     */
+    async getData(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+        const authResult = await authenticateJWT(req);
+        if (authResult instanceof NextResponse) return authResult;
+
+        try {
+            const { id } = await params;
+            const widget = await widgetService.getWidgetById(id);
+
+            // Check access to dashboard
+            const hasAccess = await dashboardService.hasAccess(widget.dashboardId, authResult.user.id);
+            if (!hasAccess) {
+                const dashboard = await dashboardService.getDashboardById(widget.dashboardId);
+                if (!dashboard.isPublic) {
+                    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+                }
+            }
+
+            const data = await widgetService.getWidgetData(id);
+            return NextResponse.json(data);
+        } catch (error: any) {
+            if (error.message === 'Widget not found') {
+                return NextResponse.json({ error: error.message }, { status: 404 });
+            }
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+    }
 }
 
 export const widgetController = new WidgetController();

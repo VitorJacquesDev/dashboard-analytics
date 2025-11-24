@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     'Plataforma completa de business intelligence com visualizações interativas e análise de dados em tempo real',
 };
 
+import { SocketProvider } from './providers/SocketProvider';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <SocketProvider>{children}</SocketProvider>
+      </body>
     </html>
   );
 }

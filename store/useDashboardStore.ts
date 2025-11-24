@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { Dashboard, Widget } from '@/lib/types';
+import { Dashboard, Widget, ActiveFilter } from '@/lib/types';
 
 interface DashboardState {
     dashboards: Dashboard[];
     activeDashboard: Dashboard | null;
     widgets: Widget[];
+    activeFilters: ActiveFilter[];
     isLoading: boolean;
     error: string | null;
 
@@ -21,6 +22,10 @@ interface DashboardState {
     updateWidget: (widget: Widget) => void;
     removeWidget: (widgetId: string) => void;
 
+    addFilter: (filter: ActiveFilter) => void;
+    removeFilter: (filterId: string) => void;
+    clearFilters: () => void;
+
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
 }
@@ -29,6 +34,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     dashboards: [],
     activeDashboard: null,
     widgets: [],
+    activeFilters: [],
     isLoading: false,
     error: null,
 
@@ -57,6 +63,10 @@ export const useDashboardStore = create<DashboardState>((set) => ({
         set((state) => ({
             widgets: state.widgets.filter((w) => w.id !== widgetId),
         })),
+
+    addFilter: (filter) => set((state) => ({ activeFilters: [...state.activeFilters, filter] })),
+    removeFilter: (filterId) => set((state) => ({ activeFilters: state.activeFilters.filter((f) => f.id !== filterId) })),
+    clearFilters: () => set({ activeFilters: [] }),
 
     setLoading: (loading) => set({ isLoading: loading }),
     setError: (error) => set({ error }),

@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { WidgetGrid } from '@/app/components/widgets/WidgetGrid';
+import { FilterBar } from '@/app/components/dashboard/FilterBar';
 import { WidgetType } from '@/lib/types';
+import { exportToPDF } from '@/lib/exportUtils';
 
 export default function DashboardPage() {
     const { widgets, setWidgets, addWidget, removeWidget } = useDashboardStore();
     const [isEditable, setIsEditable] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     // Load initial demo data if empty
     useEffect(() => {
@@ -51,6 +54,12 @@ export default function DashboardPage() {
         addWidget(newWidget);
     };
 
+    const handleExportPDF = async () => {
+        setIsExporting(true);
+        await exportToPDF('dashboard-content', 'my-dashboard');
+        setIsExporting(false);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -59,10 +68,17 @@ export default function DashboardPage() {
                 </h1>
                 <div className="space-x-4">
                     <button
+                        onClick={handleExportPDF}
+                        disabled={isExporting}
+                        className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                        {isExporting ? 'Exporting...' : 'Export PDF'}
+                    </button>
+                    <button
                         onClick={() => setIsEditable(!isEditable)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isEditable
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                                : 'bg-white text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            : 'bg-white text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                             }`}
                     >
                         {isEditable ? 'Done Editing' : 'Edit Layout'}
@@ -76,7 +92,9 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <div className="min-h-[600px]">
+            <FilterBar />
+
+            <div id="dashboard-content" className="min-h-[600px] p-1">
                 <WidgetGrid
                     widgets={widgets}
                     isEditable={isEditable}

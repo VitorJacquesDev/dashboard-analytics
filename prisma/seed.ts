@@ -341,9 +341,9 @@ async function main() {
 
   console.log('\n✨ Database seeding completed successfully!');
   console.log('\n📝 Test Credentials:');
-  console.log('   Admin:   admin@dashboard.com / admin123');
-  console.log('   Analyst: analyst@dashboard.com / analyst123');
-  console.log('   Viewer:  viewer@dashboard.com / viewer123');
+  console.log('   Admin:   admin@dashboard.com / admin1307');
+  console.log('   Analyst: analyst@dashboard.com / analyst1307');
+  console.log('   Viewer:  viewer@dashboard.com / viewer1307');
 }
 
 main()

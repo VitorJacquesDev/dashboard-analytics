@@ -49,18 +49,38 @@ export default function DashboardPage() {
         loadDashboardData();
     }, [setWidgets]);
 
-    const handleAddWidget = () => {
-        const newWidget = {
-            id: Math.random().toString(36).substr(2, 9),
-            dashboardId: 'demo',
-            type: Math.random() > 0.5 ? WidgetType.LINE_CHART : WidgetType.BAR_CHART,
-            title: 'New Widget',
-            config: {},
-            dataSource: 'demo',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-        addWidget(newWidget);
+    const handleAddWidget = async () => {
+        if (!currentDashboard) {
+            setError('No dashboard selected. Cannot add widget.');
+            return;
+        }
+
+        // Show loading state
+        setIsExporting(true); // Reusing export loading state temporarily
+
+        try {
+            // Create widget in database first
+            const newWidgetData = {
+                dashboardId: currentDashboard.id,
+                type: Math.random() > 0.5 ? WidgetType.LINE_CHART : WidgetType.BAR_CHART,
+                title: 'New Widget',
+                config: {},
+                dataSource: 'demo',
+            };
+
+            const createdWidget = await apiClient.post('/widgets', newWidgetData);
+
+            // Only add to state after successful creation
+            addWidget(createdWidget);
+        } catch (err: any) {
+            console.error('Error creating widget:', err);
+            setError(err.message || 'Failed to create widget. Please try again.');
+
+            // Clear error after 5 seconds
+            setTimeout(() => setError(null), 5000);
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const handleExportPDF = async () => {

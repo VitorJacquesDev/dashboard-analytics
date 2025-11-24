@@ -20,7 +20,7 @@ async function main() {
   // Create users with different roles
   console.log('👤 Creating users...');
   
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  const adminPassword = await bcrypt.hash('admin1307', 10);
   const admin = await prisma.user.create({
     data: {
       email: 'admin@dashboard.com',
@@ -31,7 +31,7 @@ async function main() {
   });
   console.log(`✅ Created admin user: ${admin.email}`);
 
-  const analystPassword = await bcrypt.hash('analyst123', 10);
+  const analystPassword = await bcrypt.hash('analyst1307', 10);
   const analyst = await prisma.user.create({
     data: {
       email: 'analyst@dashboard.com',
@@ -42,7 +42,7 @@ async function main() {
   });
   console.log(`✅ Created analyst user: ${analyst.email}`);
 
-  const viewerPassword = await bcrypt.hash('viewer123', 10);
+  const viewerPassword = await bcrypt.hash('viewer1307', 10);
   const viewer = await prisma.user.create({
     data: {
       email: 'viewer@dashboard.com',

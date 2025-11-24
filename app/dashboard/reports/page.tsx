@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { exportToPDF } from '@/lib/exportUtils';
+import { apiClient } from '@/lib/api-client';
 
 interface Dashboard {
     id: string;
@@ -23,15 +24,7 @@ export default function ReportsPage() {
     useEffect(() => {
         const fetchDashboards = async () => {
             try {
-                const response = await fetch('/api/dashboards', {
-                    credentials: 'include',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch dashboards');
-                }
-
-                const data = await response.json();
+                const data = await apiClient.get<Dashboard[]>('/dashboards');
                 setDashboards(data);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Unknown error');

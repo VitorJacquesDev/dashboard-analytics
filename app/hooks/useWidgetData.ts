@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChartData, ActiveFilter } from '@/lib/types';
+import { apiClient } from '@/lib/api-client';
 
 interface UseWidgetDataResult {
     data: ChartData[];
@@ -29,13 +30,7 @@ export function useWidgetData(widgetId: string, dataSource: string, config: any 
                     ...config
                 });
 
-                const response = await fetch(`/api/widgets/${widgetId}/data?${params.toString()}`);
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch data: ${response.statusText}`);
-                }
-
-                const result = await response.json();
+                const result = await apiClient.get<ChartData[]>(`/widgets/${widgetId}/data?${params.toString()}`);
 
                 if (isMounted) {
                     setData(result);

@@ -8,34 +8,18 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const login = useAuthStore((state) => state.login);
+    const { login, isLoading } = useAuthStore();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Login failed');
-            }
-
-            login(data);
+            await login({ email, password });
             router.push('/dashboard');
         } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
+            setError(err.message || 'Login failed');
         }
     };
 
@@ -81,10 +65,10 @@ export default function LoginPage() {
                     <div>
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={isLoading}
                             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                         >
-                            {loading ? 'Signing in...' : 'Sign in'}
+                            {isLoading ? 'Signing in...' : 'Sign in'}
                         </button>
                     </div>
                 </form>

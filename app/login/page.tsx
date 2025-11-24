@@ -14,11 +14,14 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        console.log('Login attempt:', { email, password });
 
         try {
             await login({ email, password });
+            console.log('Login successful, redirecting...');
             router.push('/dashboard');
         } catch (err: any) {
+            console.error('Login error:', err);
             setError(err.message || 'Login failed');
         }
     };

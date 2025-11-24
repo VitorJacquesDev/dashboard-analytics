@@ -42,10 +42,10 @@ export function WidgetGrid({ widgets, isEditable = false, onLayoutChange, onRemo
             isDraggable={isEditable}
             isResizable={isEditable}
             onLayoutChange={(layout: Layout[]) => onLayoutChange?.(layout)}
-            margin={[16, 16]}
+            margin={[24, 24]}
         >
             {widgets.map((widget) => (
-                <div key={widget.id}>
+                <div key={widget.id} className="animate-in zoom-in duration-500">
                     <WidgetCard
                         title={widget.title}
                         onRemove={isEditable && onRemoveWidget ? () => onRemoveWidget(widget.id) : undefined}

@@ -34,7 +34,10 @@ class ApiClient {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'An error occurred');
+                const errorMessage = errorData.message ||
+                    (typeof errorData.error === 'string' ? errorData.error : errorData.error?.message) ||
+                    'An error occurred';
+                throw new Error(errorMessage);
             }
 
             // Handle 204 No Content

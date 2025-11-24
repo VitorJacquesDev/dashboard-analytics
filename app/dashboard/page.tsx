@@ -61,33 +61,38 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    My Dashboard
-                </h1>
-                <div className="space-x-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                        My Dashboard
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">
+                        Real-time overview and analytics
+                    </p>
+                </div>
+                <div className="flex items-center space-x-3">
                     <button
                         onClick={handleExportPDF}
                         disabled={isExporting}
-                        className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                        className="px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
                     >
-                        {isExporting ? 'Exporting...' : 'Export PDF'}
+                        {isExporting ? 'Exporting...' : '📄 Export PDF'}
                     </button>
                     <button
                         onClick={() => setIsEditable(!isEditable)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isEditable
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                            : 'bg-white text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md ${isEditable
+                            ? 'bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800'
+                            : 'bg-white text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                             }`}
                     >
-                        {isEditable ? 'Done Editing' : 'Edit Layout'}
+                        {isEditable ? '✓ Done Editing' : '✏️ Edit Layout'}
                     </button>
                     <button
                         onClick={handleAddWidget}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
                     >
-                        Add Widget
+                        + Add Widget
                     </button>
                 </div>
             </div>

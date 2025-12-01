@@ -1,169 +1,148 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { MainLayout } from '@/app/components/layout/MainLayout';
+import { DashboardView } from '@/app/components/dashboard/DashboardView';
+import { DashboardSelector } from '@/app/components/dashboard/DashboardSelector';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { WidgetGrid } from '@/app/components/widgets/WidgetGrid';
-import { FilterBar } from '@/app/components/dashboard/FilterBar';
-import { WidgetType, Dashboard } from '@/lib/types';
-import { exportToPDF } from '@/lib/exportUtils';
 import { apiClient } from '@/lib/api-client';
+import { Dashboard, Widget } from '@/lib/types';
+
+interface DashboardWithWidgets extends Dashboard {
+    widgets: Widget[];
+}
 
 export default function DashboardPage() {
-    const { widgets, setWidgets, addWidget, removeWidget } = useDashboardStore();
-    const [isEditable, setIsEditable] = useState(false);
-    const [isExporting, setIsExporting] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [currentDashboard, setCurrentDashboard] = useState<Dashboard | null>(null);
+    const router = useRouter();
+    const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+    const { 
+        dashboards, 
+        activeDashboard, 
+        widgets,
+        setDashboards, 
+        setActiveDashboard, 
+        setWidgets,
+        setLoading,
+        setError,
+        isLoading 
+    } = useDashboardStore();
+    
+    const [initialLoad, setInitialLoad] = useState(true);
 
-    // Fetch dashboards and widgets from API
+    // Redirect if not authenticated
     useEffect(() => {
-        const loadDashboardData = async () => {
+        if (!authLoading && !isAuthenticated) {
+            router.push('/login');
+        }
+    }, [isAuthenticated, authLoading, router]);
+
+    // Fetch dashboards on mount
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const fetchDashboards = async () => {
+            setLoading(true);
             try {
-                setLoading(true);
-                setError(null);
-
-                // Fetch all dashboards for the user
-                const dashboards = await apiClient.get<Dashboard[]>('/dashboards');
-
-                if (dashboards && dashboards.length > 0) {
-                    // Use the first dashboard
-                    const dashboard = dashboards[0];
-                    setCurrentDashboard(dashboard);
-
-                    // Fetch widgets for this dashboard
-                    const dashboardWidgets = await apiClient.get<any[]>(`/dashboards/${dashboard.id}/widgets`);
-                    setWidgets(dashboardWidgets);
-                } else {
-                    // No dashboards available, show empty state
-                    setError('No dashboards found. Please create a dashboard first.');
+                const data = await apiClient.get<DashboardWithWidgets[]>('/dashboards');
+                setDashboards(data);
+                
+                // Set first dashboard as active if none selected
+                if (data.length > 0 && !activeDashboard) {
+                    setActiveDashboard(data[0]);
+                    setWidgets(data[0].widgets || []);
                 }
             } catch (err: any) {
-                console.error('Error loading dashboard data:', err);
-                setError(err.message || 'Failed to load dashboard data');
+                setError(err.message || 'Failed to load dashboards');
             } finally {
                 setLoading(false);
+                setInitialLoad(false);
             }
         };
 
-        loadDashboardData();
-    }, [setWidgets]);
+        fetchDashboards();
+    }, [isAuthenticated]);
 
-    const handleAddWidget = async () => {
-        if (!currentDashboard) {
-            setError('No dashboard selected. Cannot add widget.');
-            return;
-        }
-
-        // Show loading state
-        setIsExporting(true); // Reusing export loading state temporarily
-
+    // Handle dashboard selection
+    const handleDashboardSelect = async (dashboard: Dashboard) => {
+        setLoading(true);
         try {
-            // Create widget in database first
-            const newWidgetData = {
-                dashboardId: currentDashboard.id,
-                type: Math.random() > 0.5 ? WidgetType.LINE_CHART : WidgetType.BAR_CHART,
-                title: 'New Widget',
-                config: {},
-                dataSource: 'demo',
-            };
-
-            const createdWidget = await apiClient.post('/widgets', newWidgetData);
-
-            // Only add to state after successful creation
-            addWidget(createdWidget);
+            const data = await apiClient.get<DashboardWithWidgets>(`/dashboards/${dashboard.id}`);
+            setActiveDashboard(data);
+            setWidgets(data.widgets || []);
         } catch (err: any) {
-            console.error('Error creating widget:', err);
-            setError(err.message || 'Failed to create widget. Please try again.');
-
-            // Clear error after 5 seconds
-            setTimeout(() => setError(null), 5000);
+            setError(err.message || 'Failed to load dashboard');
         } finally {
-            setIsExporting(false);
+            setLoading(false);
         }
     };
 
-    const handleExportPDF = async () => {
-        setIsExporting(true);
-        await exportToPDF('dashboard-content', 'my-dashboard');
-        setIsExporting(false);
-    };
-
-    if (loading) {
+    if (authLoading || initialLoad) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p className="mt-4 text-slate-600 dark:text-slate-400">Loading dashboard...</p>
+            <MainLayout>
+                <div className="flex items-center justify-center h-[60vh]">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                        <p className="text-slate-500 dark:text-slate-400">Loading dashboard...</p>
+                    </div>
                 </div>
-            </div>
+            </MainLayout>
         );
     }
 
-    if (error) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center max-w-md">
-                    <div className="text-red-500 text-5xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Error Loading Dashboard</h2>
-                    <p className="text-slate-600 dark:text-slate-400">{error}</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-all"
-                    >
-                        Retry
-                    </button>
-                </div>
-            </div>
-        );
+    if (!isAuthenticated) {
+        return null;
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                        {currentDashboard?.title || 'My Dashboard'}
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        {currentDashboard?.description || 'Real-time overview and analytics'}
-                    </p>
+        <MainLayout>
+            <div className="space-y-6">
+                {/* Dashboard Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                            {activeDashboard?.title || 'My Dashboard'}
+                        </h1>
+                        {activeDashboard?.description && (
+                            <p className="text-slate-500 dark:text-slate-400 mt-1">
+                                {activeDashboard.description}
+                            </p>
+                        )}
+                    </div>
+                    
+                    <DashboardSelector
+                        dashboards={dashboards}
+                        activeDashboard={activeDashboard}
+                        onSelect={handleDashboardSelect}
+                    />
                 </div>
-                <div className="flex items-center space-x-3">
-                    <button
-                        onClick={handleExportPDF}
-                        disabled={isExporting}
-                        className="px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
-                    >
-                        {isExporting ? 'Exporting...' : '📄 Export PDF'}
-                    </button>
-                    <button
-                        onClick={() => setIsEditable(!isEditable)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md ${isEditable
-                            ? 'bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800'
-                            : 'bg-white text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                            }`}
-                    >
-                        {isEditable ? '✓ Done Editing' : '✏️ Edit Layout'}
-                    </button>
-                    <button
-                        onClick={handleAddWidget}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
-                    >
-                        + Add Widget
-                    </button>
-                </div>
-            </div>
 
-            <FilterBar />
-
-            <div id="dashboard-content" className="min-h-[600px] p-1">
-                <WidgetGrid
-                    widgets={widgets}
-                    isEditable={isEditable}
-                    onRemoveWidget={removeWidget}
-                />
+                {/* Dashboard Content */}
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-[40vh]">
+                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                    </div>
+                ) : activeDashboard ? (
+                    <DashboardView
+                        dashboard={activeDashboard}
+                        widgets={widgets}
+                    />
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-[40vh] text-center">
+                        <div className="text-6xl mb-4">📊</div>
+                        <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                            No dashboards yet
+                        </h2>
+                        <p className="text-slate-500 dark:text-slate-400 mb-6">
+                            Create your first dashboard to start visualizing your data
+                        </p>
+                        <button className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25">
+                            Create Dashboard
+                        </button>
+                    </div>
+                )}
             </div>
-        </div>
+        </MainLayout>
     );
 }

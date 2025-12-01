@@ -58,3 +58,95 @@ export const exportToCSV = (data: any[], fileName: string = 'data') => {
         document.body.removeChild(link);
     }
 };
+
+/**
+ * Export dashboard or element to PNG
+ */
+export const exportToPNG = async (
+    elementId: string,
+    fileName: string = 'dashboard'
+): Promise<void> => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+        console.error('Element not found:', elementId);
+        return;
+    }
+
+    try {
+        const canvas = await html2canvas(element, {
+            scale: 2, // High resolution
+            logging: false,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            windowWidth: element.scrollWidth,
+            windowHeight: element.scrollHeight,
+        });
+
+        // Convert to blob and download
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                console.error('Failed to create blob');
+                return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${fileName}.png`;
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 'image/png', 1.0);
+    } catch (error) {
+        console.error('Export to PNG failed:', error);
+        throw error;
+    }
+};
+
+/**
+ * Export a specific widget to PNG
+ */
+export const exportWidgetToPNG = async (
+    widgetId: string,
+    fileName: string = 'widget'
+): Promise<void> => {
+    // Widget elements are typically wrapped with a data attribute or specific class
+    const element = document.querySelector(`[data-widget-id="${widgetId}"]`) as HTMLElement
+        || document.getElementById(`widget-${widgetId}`);
+    
+    if (!element) {
+        console.error('Widget element not found:', widgetId);
+        return;
+    }
+
+    try {
+        const canvas = await html2canvas(element, {
+            scale: 2,
+            logging: false,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+        });
+
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                console.error('Failed to create blob');
+                return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${fileName}.png`;
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 'image/png', 1.0);
+    } catch (error) {
+        console.error('Export widget to PNG failed:', error);
+        throw error;
+    }
+};

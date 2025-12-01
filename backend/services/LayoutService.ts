@@ -228,6 +228,36 @@ export class LayoutService {
       theme: sourceLayout.theme,
     });
   }
+
+  /**
+   * Upsert layout - create if not exists, update if exists
+   */
+  async upsertLayout(
+    userId: string,
+    dashboardId: string,
+    data: UpdateLayoutDto
+  ): Promise<Layout> {
+    const exists = await this.layoutRepository.exists(userId, dashboardId);
+
+    if (exists) {
+      return this.updateLayout(userId, dashboardId, data);
+    } else {
+      return this.saveLayout({
+        userId,
+        dashboardId,
+        layout: data.layout || { widgets: [] },
+        theme: data.theme,
+      });
+    }
+  }
+
+  /**
+   * Get layout by user and dashboard (returns null if not found)
+   */
+  async getLayoutByUserAndDashboard(userId: string, dashboardId: string): Promise<Layout | null> {
+    const layout = await this.layoutRepository.load(userId, dashboardId);
+    return layout as Layout | null;
+  }
 }
 
 export const layoutService = new LayoutService();

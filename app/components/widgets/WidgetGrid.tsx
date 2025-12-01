@@ -48,6 +48,7 @@ export function WidgetGrid({ widgets, isEditable = false, onLayoutChange, onRemo
                 <div key={widget.id} className="animate-in zoom-in duration-500">
                     <WidgetCard
                         title={widget.title}
+                        widgetId={widget.id}
                         onRemove={isEditable && onRemoveWidget ? () => onRemoveWidget(widget.id) : undefined}
                         className="h-full"
                     >

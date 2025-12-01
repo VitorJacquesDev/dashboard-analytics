@@ -38,3 +38,10 @@ export type {
   CreateScheduleDto,
   UpdateScheduleDto,
 } from './ScheduleRepository';
+
+export { ProfileSettingsRepository } from './ProfileSettingsRepository';
+
+export type {
+  CreateProfileSettingsDto,
+  UpdateProfileSettingsDto,
+} from './ProfileSettingsRepository';

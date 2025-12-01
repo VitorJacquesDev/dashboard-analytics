@@ -75,6 +75,21 @@ export interface Layout {
   updatedAt: Date;
 }
 
+export interface ProfileSettings {
+  id: string;
+  userId: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  language: string;
+  timezone: string;
+  theme: Theme;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  weeklyReportEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ChartData {
   x: number | string | Date;
   y: number;

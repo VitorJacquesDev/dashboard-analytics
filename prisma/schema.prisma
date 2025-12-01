@@ -9,20 +9,40 @@ datasource db {
 }
 
 model User {
-  id         String           @id @default(uuid())
-  email      String           @unique
-  password   String
-  name       String
-  role       Role             @default(VIEWER)
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-  shares     DashboardShare[]
-  dashboards Dashboard[]
-  layouts    Layout[]
-  schedules  Schedule[]
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  name            String
+  role            Role             @default(VIEWER)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  shares          DashboardShare[]
+  dashboards      Dashboard[]
+  layouts         Layout[]
+  schedules       Schedule[]
+  profileSettings ProfileSettings?
 
   @@index([email])
   @@map("users")
+}
+
+model ProfileSettings {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  avatarUrl             String?
+  bio                   String?
+  language              String   @default("pt-BR")
+  timezone              String   @default("America/Sao_Paulo")
+  theme                 Theme    @default(LIGHT)
+  emailNotifications    Boolean  @default(true)
+  pushNotifications     Boolean  @default(false)
+  weeklyReportEnabled   Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profile_settings")
 }
 
 model Dashboard {

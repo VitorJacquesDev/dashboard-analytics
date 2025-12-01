@@ -30,7 +30,7 @@ export function FilterBar() {
     return (
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 border border-slate-200/60 dark:border-slate-800/60 mb-8 transition-all duration-300">
             <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-800 dark:text-gray-200 flex items-center gap-2">
                     <span className="text-indigo-500">🔍</span> Filters
                 </h3>
                 <div className="space-x-3">

@@ -39,7 +39,7 @@ export default function LoginPage() {
                     <div className="mx-auto h-16 w-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-6 rotate-3 hover:rotate-6 transition-transform duration-300">
                         <span className="text-3xl">📊</span>
                     </div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    <h2 className="text-3xl font-bold text-slate-900 dark:text-gray-200 tracking-tight">
                         Welcome Back
                     </h2>
                     <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
@@ -60,7 +60,7 @@ export default function LoginPage() {
                                 name="email"
                                 type="email"
                                 required
-                                className="appearance-none relative block w-full px-4 py-3.5 border border-slate-200 dark:border-slate-600/50 placeholder-slate-400 text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 sm:text-sm"
+                                className="appearance-none relative block w-full px-4 py-3.5 border border-slate-200 dark:border-slate-600/50 placeholder-slate-400 text-slate-900 dark:text-gray-200 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 sm:text-sm"
                                 placeholder="Email address"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -73,7 +73,7 @@ export default function LoginPage() {
                                 name="password"
                                 type="password"
                                 required
-                                className="appearance-none relative block w-full px-4 py-3.5 border border-slate-200 dark:border-slate-600/50 placeholder-slate-400 text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 sm:text-sm"
+                                className="appearance-none relative block w-full px-4 py-3.5 border border-slate-200 dark:border-slate-600/50 placeholder-slate-400 text-slate-900 dark:text-gray-200 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 sm:text-sm"
                                 placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}

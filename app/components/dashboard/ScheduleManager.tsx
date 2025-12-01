@@ -137,7 +137,7 @@ export function ScheduleManager({ dashboards, isOpen, onClose }: ScheduleManager
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-gray-200">
                             📅 Scheduled Reports
                         </h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -165,7 +165,7 @@ export function ScheduleManager({ dashboards, isOpen, onClose }: ScheduleManager
                     {/* Create Form */}
                     {isCreating ? (
                         <form onSubmit={handleCreate} className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                            <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
+                            <h3 className="font-semibold text-slate-900 dark:text-gray-200 mb-4">
                                 New Schedule
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,7 +275,7 @@ export function ScheduleManager({ dashboards, isOpen, onClose }: ScheduleManager
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
-                                                <h4 className="font-semibold text-slate-900 dark:text-white">
+                                                <h4 className="font-semibold text-slate-900 dark:text-gray-200">
                                                     {schedule.name}
                                                 </h4>
                                                 <span className={`px-2 py-0.5 text-xs rounded-full ${

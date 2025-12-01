@@ -94,7 +94,7 @@ export function SharedDashboardsList({ onSelect }: SharedDashboardsListProps) {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                    <p className="text-sm font-medium text-slate-900 dark:text-gray-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                         {dashboard.title}
                                     </p>
                                     <span className={`px-1.5 py-0.5 text-xs rounded ${

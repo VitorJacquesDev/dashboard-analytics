@@ -2,6 +2,7 @@
 
 import { useAuthStore } from '@/store/useAuthStore';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '../ThemeToggle';
 
 export function Header() {
     const { user, logout } = useAuthStore();
@@ -15,15 +16,16 @@ export function Header() {
     return (
         <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-8 sticky top-0 z-10 transition-colors duration-300">
             <div className="flex items-center">
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-gray-200 tracking-tight">
                     Overview
                 </h2>
             </div>
 
             <div className="flex items-center space-x-6">
+                <ThemeToggle />
                 <div className="flex items-center space-x-4 pl-6 border-l border-slate-200/50 dark:border-slate-700/50">
                     <div className="text-right hidden md:block">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-gray-200">
                             {user?.name || 'User'}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">

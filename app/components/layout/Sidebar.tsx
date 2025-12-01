@@ -13,7 +13,7 @@ export function Sidebar() {
     ];
 
     return (
-        <aside className="w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-800/50 text-slate-900 dark:text-white h-screen flex flex-col fixed left-0 top-0 z-20 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
+        <aside className="w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-800/50 text-slate-900 dark:text-gray-200 h-screen flex flex-col fixed left-0 top-0 z-20 shadow-2xl shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-300">
             <div className="p-6 border-b border-slate-200/50 dark:border-slate-800/50">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 dark:from-indigo-400 dark:via-purple-400 dark:to-cyan-400 bg-clip-text text-transparent tracking-tight">
                     Analytics

@@ -91,7 +91,7 @@ export default function SettingsPage() {
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-gray-200">
                         Configurações
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">
@@ -178,7 +178,7 @@ function ProfileSettingsTab({
 }) {
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-gray-200">
                 Informações do Perfil
             </h2>
             
@@ -191,7 +191,7 @@ function ProfileSettingsTab({
                         type="text"
                         value={settings.displayName}
                         onChange={(e) => setSettings(prev => ({ ...prev, displayName: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                         placeholder="Seu nome"
                     />
                 </div>
@@ -204,7 +204,7 @@ function ProfileSettingsTab({
                         type="email"
                         value={settings.email}
                         onChange={(e) => setSettings(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                         placeholder="seu@email.com"
                     />
                 </div>
@@ -216,7 +216,7 @@ function ProfileSettingsTab({
                     <select
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                     >
                         <option value="pt-BR">Português (Brasil)</option>
                         <option value="en-US">English (US)</option>
@@ -242,7 +242,7 @@ function NotificationSettingsTab({
 
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-gray-200">
                 Preferências de Notificação
             </h2>
             
@@ -288,7 +288,7 @@ function AppearanceSettingsTab({
 
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-gray-200">
                 Aparência
             </h2>
             
@@ -327,7 +327,7 @@ function AppearanceSettingsTab({
 function SecuritySettings() {
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-gray-200">
                 Segurança
             </h2>
             
@@ -335,7 +335,7 @@ function SecuritySettings() {
                 <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-medium text-slate-900 dark:text-white">Alterar Senha</h3>
+                            <h3 className="font-medium text-slate-900 dark:text-gray-200">Alterar Senha</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Atualize sua senha regularmente para maior segurança
                             </p>
@@ -349,7 +349,7 @@ function SecuritySettings() {
                 <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-medium text-slate-900 dark:text-white">Autenticação de Dois Fatores</h3>
+                            <h3 className="font-medium text-slate-900 dark:text-gray-200">Autenticação de Dois Fatores</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Adicione uma camada extra de segurança à sua conta
                             </p>
@@ -363,7 +363,7 @@ function SecuritySettings() {
                 <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-medium text-slate-900 dark:text-white">Sessões Ativas</h3>
+                            <h3 className="font-medium text-slate-900 dark:text-gray-200">Sessões Ativas</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Gerencie os dispositivos conectados à sua conta
                             </p>
@@ -393,7 +393,7 @@ function ToggleItem({
     return (
         <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
             <div>
-                <h3 className="font-medium text-slate-900 dark:text-white">{label}</h3>
+                <h3 className="font-medium text-slate-900 dark:text-gray-200">{label}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
             </div>
             <button

@@ -108,7 +108,7 @@ export function ShareModal({ dashboardId, dashboardTitle, isOpen, onClose }: Sha
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-gray-200">
                             🔗 Share Dashboard
                         </h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -197,7 +197,7 @@ export function ShareModal({ dashboardId, dashboardTitle, isOpen, onClose }: Sha
                                                 {share.user.name[0]}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                                                <p className="text-sm font-medium text-slate-900 dark:text-gray-200">
                                                     {share.user.name}
                                                 </p>
                                                 <p className="text-xs text-slate-500 dark:text-slate-400">

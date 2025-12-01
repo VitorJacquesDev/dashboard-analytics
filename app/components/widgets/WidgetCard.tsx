@@ -48,7 +48,7 @@ export function WidgetCard({ title, children, className = '', widgetId, onRemove
             id={widgetId ? `widget-${widgetId}` : undefined}
         >
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm rounded-t-2xl">
-                <h3 className="font-bold text-slate-800 dark:text-white truncate tracking-tight">
+                <h3 className="font-bold text-slate-800 dark:text-gray-200 truncate tracking-tight">
                     {title}
                 </h3>
                 <div className="flex items-center space-x-2">

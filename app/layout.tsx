@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 };
 
 import { SocketProvider } from './providers/SocketProvider';
+import { ThemeProvider } from './providers/ThemeProvider';
 
 export default function RootLayout({
   children,
@@ -26,9 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SocketProvider>{children}</SocketProvider>
+        <ThemeProvider>
+          <SocketProvider>{children}</SocketProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

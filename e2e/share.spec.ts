@@ -5,7 +5,7 @@ test.describe('Dashboard Sharing', () => {
         // Login as admin
         await page.goto('/login');
         await page.fill('input[type="email"]', 'admin@dashboard.com');
-        await page.fill('input[type="password"]', 'admin123');
+        await page.fill('input[type="password"]', 'admin1307');
         await page.click('button[type="submit"]');
         await page.waitForURL('/dashboard');
     });
@@ -183,7 +183,7 @@ test.describe('Dashboard Sharing', () => {
         // Login as analyst who might have shared dashboards
         await page.goto('/login');
         await page.fill('input[type="email"]', 'analyst@dashboard.com');
-        await page.fill('input[type="password"]', 'analyst123');
+        await page.fill('input[type="password"]', 'analyst1307');
         await page.click('button[type="submit"]');
         await page.waitForURL('/dashboard');
         

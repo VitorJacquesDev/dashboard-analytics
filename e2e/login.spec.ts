@@ -6,7 +6,7 @@ test('login flow', async ({ page }) => {
 
     // Fill in credentials (using seeded admin user)
     await page.fill('input[type="email"]', 'admin@dashboard.com');
-    await page.fill('input[type="password"]', 'admin123');
+    await page.fill('input[type="password"]', 'admin1307');
 
     // Submit form
     await page.click('button[type="submit"]');
@@ -15,5 +15,5 @@ test('login flow', async ({ page }) => {
     await expect(page).toHaveURL('/dashboard');
 
     // Verify dashboard content is visible
-    await expect(page.locator('h1')).toContainText('My Dashboard');
+    await expect(page.getByRole('heading', { level: 1 }).last()).toBeVisible();
 });

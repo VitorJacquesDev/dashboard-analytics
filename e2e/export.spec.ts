@@ -5,7 +5,7 @@ test.describe('Export Functionality', () => {
         // Login before each test
         await page.goto('/login');
         await page.fill('input[type="email"]', 'admin@dashboard.com');
-        await page.fill('input[type="password"]', 'admin123');
+        await page.fill('input[type="password"]', 'admin1307');
         await page.click('button[type="submit"]');
         await page.waitForURL('/dashboard');
     });

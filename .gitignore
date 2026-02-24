@@ -80,3 +80,6 @@ playwright/.cache/
 
 # Kiro
 .kiro/
+
+# Local planning/docs
+MELHORIAS_PROJETO.md

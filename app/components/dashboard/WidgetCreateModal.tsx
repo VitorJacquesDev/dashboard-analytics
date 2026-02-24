@@ -3,15 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { WidgetType, type Widget } from '@/lib/types';
+import {
+  PRISMA_DASHBOARD_WIDGET_DATA_SOURCE_CATALOG,
+  type PrismaDashboardWidgetDataSourceConfigMode,
+  type PrismaDashboardWidgetDataSourceId,
+} from '@/lib/prisma-dashboard-widget-data-sources';
 
 type WidgetTypeValue = (typeof WidgetType)[keyof typeof WidgetType];
-type WidgetPresetKey =
-  | 'prisma_widgets_count'
-  | 'prisma_widgets_by_type'
-  | 'prisma_widgets_timeline'
-  | 'prisma_schedules_active_count'
-  | 'prisma_schedules_upcoming'
-  | 'custom';
+type WidgetPresetKey = PrismaDashboardWidgetDataSourceId | 'custom';
 
 interface WidgetCreateModalProps {
   dashboardId: string;
@@ -27,63 +26,17 @@ type WidgetPreset = {
   defaultTitle: string;
   dataSource: string;
   defaultType: WidgetTypeValue;
-  allowedTypes: WidgetTypeValue[];
-  configMode: 'none' | 'timeline' | 'upcoming' | 'custom-json';
+  allowedTypes: readonly WidgetTypeValue[];
+  configMode: PrismaDashboardWidgetDataSourceConfigMode | 'custom-json';
 };
 
 const ALL_WIDGET_TYPES = Object.values(WidgetType) as WidgetTypeValue[];
 
 const PRESETS: WidgetPreset[] = [
-  {
-    key: 'prisma_widgets_count',
-    label: 'Prisma · Total Widgets',
-    description: 'Metrica com total de widgets do dashboard atual',
-    defaultTitle: 'Total de Widgets',
-    dataSource: 'prisma:dashboard.widgets.count',
-    defaultType: WidgetType.METRIC,
-    allowedTypes: [WidgetType.METRIC],
-    configMode: 'none',
-  },
-  {
-    key: 'prisma_widgets_by_type',
-    label: 'Prisma · Widgets por Tipo',
-    description: 'Agrupa widgets do dashboard por tipo',
-    defaultTitle: 'Widgets por Tipo',
-    dataSource: 'prisma:dashboard.widgets.by_type',
-    defaultType: WidgetType.BAR_CHART,
-    allowedTypes: [WidgetType.BAR_CHART, WidgetType.PIE_CHART, WidgetType.TABLE],
-    configMode: 'none',
-  },
-  {
-    key: 'prisma_widgets_timeline',
-    label: 'Prisma · Widgets por Dia',
-    description: 'Timeline de widgets criados no dashboard',
-    defaultTitle: 'Widgets Criados por Dia',
-    dataSource: 'prisma:dashboard.widgets.timeline',
-    defaultType: WidgetType.LINE_CHART,
-    allowedTypes: [WidgetType.LINE_CHART, WidgetType.AREA_CHART, WidgetType.BAR_CHART, WidgetType.TABLE],
-    configMode: 'timeline',
-  },
-  {
-    key: 'prisma_schedules_active_count',
-    label: 'Prisma · Agendamentos Ativos',
-    description: 'Metrica com agendamentos ativos deste dashboard',
-    defaultTitle: 'Agendamentos Ativos',
-    dataSource: 'prisma:dashboard.schedules.active_count',
-    defaultType: WidgetType.METRIC,
-    allowedTypes: [WidgetType.METRIC],
-    configMode: 'none',
-  },
-  {
-    key: 'prisma_schedules_upcoming',
-    label: 'Prisma · Próximos Agendamentos',
-    description: 'Tabela com próximos envios agendados do dashboard',
-    defaultTitle: 'Próximos Agendamentos',
-    dataSource: 'prisma:dashboard.schedules.upcoming',
-    defaultType: WidgetType.TABLE,
-    allowedTypes: [WidgetType.TABLE],
-    configMode: 'upcoming',
-  },
+  ...PRISMA_DASHBOARD_WIDGET_DATA_SOURCE_CATALOG.map((preset) => ({
+    key: preset.dataSource,
+    ...preset,
+  })),
   {
     key: 'custom',
     label: 'Custom · Data Source Manual',
@@ -97,7 +50,7 @@ const PRESETS: WidgetPreset[] = [
 ];
 
 const PRESET_MAP = new Map(PRESETS.map((preset) => [preset.key, preset]));
-const DEFAULT_PRESET_KEY: WidgetPresetKey = 'prisma_widgets_count';
+const DEFAULT_PRESET_KEY: WidgetPresetKey = 'prisma:dashboard.widgets.count';
 
 function safeParseJsonObject(input: string): Record<string, unknown> {
   const trimmed = input.trim();

@@ -126,6 +126,30 @@ describe('WidgetService widget data cache', () => {
     expect(result).toEqual([{ x: 'Widgets', y: 7 }]);
   });
 
+  it('applies widget filters to Prisma queries for dashboard widget metrics', async () => {
+    mockPrisma.widget.findUnique.mockResolvedValueOnce({
+      ...baseWidget,
+      dataSource: 'prisma:dashboard.widgets.count',
+      type: WidgetType.METRIC,
+    });
+    mockPrisma.widget.count.mockResolvedValueOnce(3);
+
+    await service.getWidgetData(baseWidget.id, [
+      { field: 'category', operator: 'eq', value: 'bar-chart' } as any,
+      { field: 'title', operator: 'contains', value: 'sales' } as any,
+    ]);
+
+    expect(mockPrisma.widget.count).toHaveBeenCalledWith({
+      where: {
+        dashboardId: baseWidget.dashboardId,
+        AND: [
+          { type: WidgetType.BAR_CHART },
+          { title: { contains: 'sales', mode: 'insensitive' } },
+        ],
+      },
+    });
+  });
+
   it('uses Prisma provider for widgets grouped by type', async () => {
     mockPrisma.widget.findUnique.mockResolvedValueOnce({
       ...baseWidget,
@@ -149,6 +173,54 @@ describe('WidgetService widget data cache', () => {
       { x: WidgetType.BAR_CHART, y: 2 },
       { x: WidgetType.PIE_CHART, y: 1 },
     ]);
+  });
+
+  it('applies schedule filters to Prisma queries for upcoming schedules', async () => {
+    mockPrisma.widget.findUnique.mockResolvedValueOnce({
+      ...baseWidget,
+      dataSource: 'prisma:dashboard.schedules.upcoming',
+      type: WidgetType.TABLE,
+      config: { limit: 5, includeInactive: true },
+    });
+    mockPrisma.schedule.findMany.mockResolvedValueOnce([]);
+
+    await service.getWidgetData(baseWidget.id, [
+      { field: 'status', operator: 'eq', value: 'inactive' } as any,
+      { field: 'date', operator: 'gte', value: '2026-02-10T00:00:00.000Z' } as any,
+    ]);
+
+    expect(mockPrisma.schedule.findMany).toHaveBeenCalledWith({
+      where: {
+        dashboardId: baseWidget.dashboardId,
+        AND: [
+          { isActive: false },
+          { nextRun: { gte: new Date('2026-02-10T00:00:00.000Z') } },
+        ],
+      },
+      orderBy: {
+        nextRun: 'asc',
+      },
+      take: 5,
+      select: {
+        name: true,
+        cronExpr: true,
+        isActive: true,
+        nextRun: true,
+        lastRun: true,
+        recipients: true,
+      },
+    });
+  });
+
+  it('rejects Prisma provider output that violates the widget data contract', async () => {
+    mockPrisma.widget.findUnique.mockResolvedValueOnce({
+      ...baseWidget,
+      dataSource: 'prisma:dashboard.widgets.count',
+      type: WidgetType.METRIC,
+    });
+    mockPrisma.widget.count.mockResolvedValueOnce('7');
+
+    await expect(service.getWidgetData(baseWidget.id)).rejects.toThrow('Invalid widget data contract');
   });
 
   it('rejects invalid config for prisma timeline data source on create', async () => {

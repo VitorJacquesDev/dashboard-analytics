@@ -29,31 +29,31 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
         case 'prisma:dashboard.schedules.upcoming':
           return this.getDashboardUpcomingSchedules(prisma, widget, filters);
         case 'prisma:business.sales.revenue.total':
-          return this.getBusinessSalesRevenueTotal(prisma, widget);
+          return this.getBusinessSalesRevenueTotal(prisma, widget, filters);
         case 'prisma:business.sales.revenue.timeline':
-          return this.getBusinessSalesRevenueTimeline(prisma, widget);
+          return this.getBusinessSalesRevenueTimeline(prisma, widget, filters);
         case 'prisma:business.sales.orders.by_status':
-          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'status');
+          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'status', filters);
         case 'prisma:business.sales.orders.by_region':
-          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'region');
+          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'region', filters);
         case 'prisma:business.sales.orders.by_channel':
-          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'channel');
+          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'channel', filters);
         case 'prisma:business.marketing.leads.conversion_rate':
-          return this.getBusinessMarketingLeadsConversionRate(prisma, widget);
+          return this.getBusinessMarketingLeadsConversionRate(prisma, widget, filters);
         case 'prisma:business.marketing.leads.timeline':
-          return this.getBusinessMarketingLeadsTimeline(prisma, widget);
+          return this.getBusinessMarketingLeadsTimeline(prisma, widget, filters);
         case 'prisma:business.marketing.leads.by_channel':
-          return this.getBusinessMarketingLeadsGrouped(prisma, widget, 'channel');
+          return this.getBusinessMarketingLeadsGrouped(prisma, widget, 'channel', filters);
         case 'prisma:business.marketing.leads.by_stage':
-          return this.getBusinessMarketingLeadsGrouped(prisma, widget, 'stage');
+          return this.getBusinessMarketingLeadsGrouped(prisma, widget, 'stage', filters);
         case 'prisma:business.operations.tickets.open_count':
-          return this.getBusinessOperationsTicketsOpenCount(prisma, widget);
+          return this.getBusinessOperationsTicketsOpenCount(prisma, widget, filters);
         case 'prisma:business.operations.tickets.timeline':
-          return this.getBusinessOperationsTicketsTimeline(prisma, widget);
+          return this.getBusinessOperationsTicketsTimeline(prisma, widget, filters);
         case 'prisma:business.operations.tickets.by_priority':
-          return this.getBusinessOperationsTicketsByPriority(prisma, widget);
+          return this.getBusinessOperationsTicketsByPriority(prisma, widget, filters);
         case 'prisma:business.operations.sla.compliance_rate':
-          return this.getBusinessOperationsSlaComplianceRate(prisma, widget);
+          return this.getBusinessOperationsSlaComplianceRate(prisma, widget, filters);
         default:
           throw new Error(`Unsupported widget data source: ${widget.dataSource}`);
       }
@@ -230,11 +230,13 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessSalesRevenueTotal(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const aggregated = await prisma.salesOrder.aggregate({
       where: {
         dashboardId: widget.dashboardId,
+        ...this.buildSalesOrderFilterWhere(filters),
       },
       _sum: {
         totalAmount: true,
@@ -251,7 +253,8 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessSalesRevenueTimeline(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const config = this.getConfigObject(widget.config);
     const days = this.getIntegerConfig(config, 'days', 30, 1, 365);
@@ -261,6 +264,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
       where: {
         dashboardId: widget.dashboardId,
         orderDate: { gte: startDate },
+        ...this.buildSalesOrderFilterWhere(filters),
       },
       select: {
         orderDate: true,
@@ -295,12 +299,14 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
   private async getBusinessSalesOrdersGrouped(
     prisma: WidgetDataProviderContext['prisma'],
     widget: Widget,
-    field: 'status' | 'region' | 'channel'
+    field: 'status' | 'region' | 'channel',
+    filters?: Filter[]
   ) {
     const grouped = (await (prisma.salesOrder.groupBy as any)({
       by: [field],
       where: {
         dashboardId: widget.dashboardId,
+        ...this.buildSalesOrderFilterWhere(filters),
       },
       _count: {
         _all: true,
@@ -327,18 +333,21 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessMarketingLeadsConversionRate(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const [totalLeads, convertedLeads] = await Promise.all([
       prisma.marketingLead.count({
         where: {
           dashboardId: widget.dashboardId,
+          ...this.buildMarketingLeadFilterWhere(filters),
         },
       }),
       prisma.marketingLead.count({
         where: {
           dashboardId: widget.dashboardId,
           isConverted: true,
+          ...this.buildMarketingLeadFilterWhere(filters),
         },
       }),
     ]);
@@ -355,7 +364,8 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessMarketingLeadsTimeline(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const config = this.getConfigObject(widget.config);
     const days = this.getIntegerConfig(config, 'days', 30, 1, 365);
@@ -365,6 +375,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
       where: {
         dashboardId: widget.dashboardId,
         capturedAt: { gte: startDate },
+        ...this.buildMarketingLeadFilterWhere(filters),
       },
       select: {
         capturedAt: true,
@@ -398,12 +409,14 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
   private async getBusinessMarketingLeadsGrouped(
     prisma: WidgetDataProviderContext['prisma'],
     widget: Widget,
-    field: 'channel' | 'stage'
+    field: 'channel' | 'stage',
+    filters?: Filter[]
   ) {
     const grouped = (await (prisma.marketingLead.groupBy as any)({
       by: [field],
       where: {
         dashboardId: widget.dashboardId,
+        ...this.buildMarketingLeadFilterWhere(filters),
       },
       _count: {
         _all: true,
@@ -430,7 +443,8 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessOperationsTicketsOpenCount(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const total = await prisma.operationsTicket.count({
       where: {
@@ -438,6 +452,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
         status: {
           in: [...OPEN_OPERATIONS_TICKET_STATUSES],
         },
+        ...this.buildOperationsTicketFilterWhere(filters),
       },
     });
 
@@ -451,7 +466,8 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessOperationsTicketsTimeline(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const config = this.getConfigObject(widget.config);
     const days = this.getIntegerConfig(config, 'days', 30, 1, 365);
@@ -461,6 +477,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
       where: {
         dashboardId: widget.dashboardId,
         openedAt: { gte: startDate },
+        ...this.buildOperationsTicketFilterWhere(filters),
       },
       select: {
         openedAt: true,
@@ -493,12 +510,14 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessOperationsTicketsByPriority(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const grouped = await prisma.operationsTicket.groupBy({
       by: ['priority'],
       where: {
         dashboardId: widget.dashboardId,
+        ...this.buildOperationsTicketFilterWhere(filters),
       },
       _count: {
         _all: true,
@@ -525,13 +544,15 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
   private async getBusinessOperationsSlaComplianceRate(
     prisma: WidgetDataProviderContext['prisma'],
-    widget: Widget
+    widget: Widget,
+    filters?: Filter[]
   ) {
     const [resolvedCount, compliantCount] = await Promise.all([
       prisma.operationsTicket.count({
         where: {
           dashboardId: widget.dashboardId,
           resolvedAt: { not: null },
+          ...this.buildOperationsTicketFilterWhere(filters),
         },
       }),
       prisma.operationsTicket.count({
@@ -539,6 +560,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
           dashboardId: widget.dashboardId,
           resolvedAt: { not: null },
           slaBreached: false,
+          ...this.buildOperationsTicketFilterWhere(filters),
         },
       }),
     ]);
@@ -575,6 +597,163 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
     }
 
     return { AND: conditions };
+  }
+
+  private buildSalesOrderFilterWhere(filters?: Filter[]): Prisma.SalesOrderWhereInput {
+    const conditions = (filters ?? [])
+      .map((filter) => this.buildSalesOrderFilterCondition(filter))
+      .filter((condition): condition is Prisma.SalesOrderWhereInput => condition !== null);
+
+    if (conditions.length === 0) {
+      return {};
+    }
+
+    return { AND: conditions };
+  }
+
+  private buildMarketingLeadFilterWhere(filters?: Filter[]): Prisma.MarketingLeadWhereInput {
+    const conditions = (filters ?? [])
+      .map((filter) => this.buildMarketingLeadFilterCondition(filter))
+      .filter((condition): condition is Prisma.MarketingLeadWhereInput => condition !== null);
+
+    if (conditions.length === 0) {
+      return {};
+    }
+
+    return { AND: conditions };
+  }
+
+  private buildOperationsTicketFilterWhere(filters?: Filter[]): Prisma.OperationsTicketWhereInput {
+    const conditions = (filters ?? [])
+      .map((filter) => this.buildOperationsTicketFilterCondition(filter))
+      .filter((condition): condition is Prisma.OperationsTicketWhereInput => condition !== null);
+
+    if (conditions.length === 0) {
+      return {};
+    }
+
+    return { AND: conditions };
+  }
+
+  private buildSalesOrderFilterCondition(filter: Filter): Prisma.SalesOrderWhereInput | null {
+    const field = this.normalizeFieldName(filter.field);
+
+    switch (field) {
+      case 'salesstatus':
+      case 'orderstatus':
+      case 'status':
+        return this.buildStringFieldCondition<Prisma.SalesOrderWhereInput>('status', filter);
+      case 'region':
+      case 'salesregion':
+        return this.buildStringFieldCondition<Prisma.SalesOrderWhereInput>('region', filter);
+      case 'saleschannel':
+      case 'channel':
+        return this.buildStringFieldCondition<Prisma.SalesOrderWhereInput>('channel', filter);
+      case 'customer':
+      case 'customername':
+      case 'customertitle':
+        return this.buildStringFieldCondition<Prisma.SalesOrderWhereInput>('customerName', filter);
+      case 'ordernumber':
+      case 'orderid':
+        return this.buildStringFieldCondition<Prisma.SalesOrderWhereInput>('orderNumber', filter);
+      case 'orderdate':
+      case 'date':
+        return this.buildDateFieldCondition<Prisma.SalesOrderWhereInput>('orderDate', filter);
+      case 'totalamount':
+      case 'amount':
+      case 'revenue':
+        return this.buildNumberFieldCondition<Prisma.SalesOrderWhereInput>('totalAmount', filter);
+      case 'createdat':
+        return this.buildDateFieldCondition<Prisma.SalesOrderWhereInput>('createdAt', filter);
+      case 'updatedat':
+        return this.buildDateFieldCondition<Prisma.SalesOrderWhereInput>('updatedAt', filter);
+      default:
+        return null;
+    }
+  }
+
+  private buildMarketingLeadFilterCondition(filter: Filter): Prisma.MarketingLeadWhereInput | null {
+    const field = this.normalizeFieldName(filter.field);
+
+    switch (field) {
+      case 'leadchannel':
+      case 'channel':
+        return this.buildStringFieldCondition<Prisma.MarketingLeadWhereInput>('channel', filter);
+      case 'campaign':
+        return this.buildStringFieldCondition<Prisma.MarketingLeadWhereInput>('campaign', filter);
+      case 'leadstage':
+      case 'stage':
+      case 'status':
+        return this.buildStringFieldCondition<Prisma.MarketingLeadWhereInput>('stage', filter);
+      case 'leadconverted':
+      case 'isconverted':
+      case 'converted':
+        return this.buildBooleanFieldCondition<Prisma.MarketingLeadWhereInput>('isConverted', filter);
+      case 'leadname':
+      case 'name':
+        return this.buildStringFieldCondition<Prisma.MarketingLeadWhereInput>('leadName', filter);
+      case 'capturedat':
+      case 'date':
+        return this.buildDateFieldCondition<Prisma.MarketingLeadWhereInput>('capturedAt', filter);
+      case 'convertedat':
+        return this.buildDateFieldCondition<Prisma.MarketingLeadWhereInput>('convertedAt', filter);
+      case 'estimatedvalue':
+      case 'value':
+        return this.buildNumberFieldCondition<Prisma.MarketingLeadWhereInput>('estimatedValue', filter);
+      case 'acquisitioncost':
+      case 'cost':
+      case 'cac':
+        return this.buildNumberFieldCondition<Prisma.MarketingLeadWhereInput>('acquisitionCost', filter);
+      case 'createdat':
+        return this.buildDateFieldCondition<Prisma.MarketingLeadWhereInput>('createdAt', filter);
+      case 'updatedat':
+        return this.buildDateFieldCondition<Prisma.MarketingLeadWhereInput>('updatedAt', filter);
+      default:
+        return null;
+    }
+  }
+
+  private buildOperationsTicketFilterCondition(
+    filter: Filter
+  ): Prisma.OperationsTicketWhereInput | null {
+    const field = this.normalizeFieldName(filter.field);
+
+    switch (field) {
+      case 'ticketstatus':
+      case 'status':
+        return this.buildStringFieldCondition<Prisma.OperationsTicketWhereInput>('status', filter);
+      case 'priority':
+        return this.buildStringFieldCondition<Prisma.OperationsTicketWhereInput>('priority', filter);
+      case 'team':
+        return this.buildStringFieldCondition<Prisma.OperationsTicketWhereInput>('team', filter);
+      case 'tickettitle':
+      case 'title':
+      case 'name':
+        return this.buildStringFieldCondition<Prisma.OperationsTicketWhereInput>('title', filter);
+      case 'slabreached':
+      case 'slabreach':
+      case 'sla':
+        return this.buildBooleanFieldCondition<Prisma.OperationsTicketWhereInput>('slaBreached', filter);
+      case 'openedat':
+      case 'date':
+        return this.buildDateFieldCondition<Prisma.OperationsTicketWhereInput>('openedAt', filter);
+      case 'resolvedat':
+        return this.buildDateFieldCondition<Prisma.OperationsTicketWhereInput>('resolvedAt', filter);
+      case 'resolutionminutes':
+      case 'resolutiontime':
+      case 'duration':
+      case 'mttr':
+        return this.buildNumberFieldCondition<Prisma.OperationsTicketWhereInput>(
+          'resolutionMinutes',
+          filter
+        );
+      case 'createdat':
+        return this.buildDateFieldCondition<Prisma.OperationsTicketWhereInput>('createdAt', filter);
+      case 'updatedat':
+        return this.buildDateFieldCondition<Prisma.OperationsTicketWhereInput>('updatedAt', filter);
+      default:
+        return null;
+    }
   }
 
   private buildWidgetFilterCondition(filter: Filter): Prisma.WidgetWhereInput | null {
@@ -694,6 +873,35 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
     }
   }
 
+  private buildNumberFieldCondition<TWhere extends Record<string, unknown>>(
+    fieldName: string,
+    filter: Filter
+  ): TWhere | null {
+    switch (filter.operator) {
+      case 'eq': {
+        const value = this.parseNumberValue(filter.value);
+        return value !== null ? ({ [fieldName]: value } as TWhere) : null;
+      }
+      case 'ne': {
+        const value = this.parseNumberValue(filter.value);
+        return value !== null ? ({ NOT: { [fieldName]: value } } as unknown as TWhere) : null;
+      }
+      case 'gt':
+      case 'gte':
+      case 'lt':
+      case 'lte': {
+        const value = this.parseNumberValue(filter.value);
+        return value !== null ? ({ [fieldName]: { [filter.operator]: value } } as TWhere) : null;
+      }
+      case 'in': {
+        const values = this.parseNumberList(filter.value);
+        return values ? ({ [fieldName]: { in: values } } as TWhere) : null;
+      }
+      default:
+        return null;
+    }
+  }
+
   private buildDateFieldCondition<TWhere extends Record<string, unknown>>(
     fieldName: string,
     filter: Filter
@@ -778,6 +986,41 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
       .filter((item) => item.length > 0);
 
     return parts.length > 0 ? parts : null;
+  }
+
+  private parseNumberValue(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    const raw = this.parseStringValue(value);
+    if (raw === null) {
+      return null;
+    }
+
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private parseNumberList(value: unknown): number[] | null {
+    if (Array.isArray(value)) {
+      const normalized = value
+        .map((item) => this.parseNumberValue(item))
+        .filter((item): item is number => item !== null);
+
+      return normalized.length > 0 ? normalized : null;
+    }
+
+    const asStringList = this.parseStringList(value);
+    if (!asStringList) {
+      return null;
+    }
+
+    const normalized = asStringList
+      .map((item) => this.parseNumberValue(item))
+      .filter((item): item is number => item !== null);
+
+    return normalized.length > 0 ? normalized : null;
   }
 
   private parseWidgetTypeValue(value: unknown): WidgetType | null {

@@ -78,6 +78,3 @@ playwright/.cache/
 # Uploads
 /public/uploads
 
-# Kiro
-.kiro/
-

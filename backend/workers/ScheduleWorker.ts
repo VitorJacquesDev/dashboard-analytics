@@ -1,6 +1,7 @@
 import cron, { ScheduledTask } from 'node-cron';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ExportFormat } from '@prisma/client';
 import { prisma as prismaClient } from '@/lib/prisma';
+import { getNextRunFromCron, isValidCronExpression } from '@/backend/utils/cron';
 import { ReportGenerator } from './ReportGenerator';
 
 interface ScheduleJob {
@@ -9,7 +10,7 @@ interface ScheduleJob {
     userId: string;
     cronExpression: string;
     recipients: string[];
-    format: string[];
+    format: ExportFormat[];
     name: string;
 }
 
@@ -92,7 +93,7 @@ export class ScheduleWorker {
      */
     addJob(schedule: ScheduleJob): void {
         // Validate CRON expression
-        if (!cron.validate(schedule.cronExpression)) {
+        if (!isValidCronExpression(schedule.cronExpression)) {
             console.error(`[ScheduleWorker] Invalid CRON expression: ${schedule.cronExpression}`);
             return;
         }
@@ -130,31 +131,48 @@ export class ScheduleWorker {
         console.log(`[ScheduleWorker] Executing job: ${schedule.id}`);
 
         try {
-            // Generate report
-            const reportBuffer = await this.reportGenerator.generatePDF(schedule.dashboardId);
+            const executedAt = new Date();
+            const attachments = await this.reportGenerator.generateAttachments(
+                schedule.dashboardId,
+                schedule.format
+            );
 
             // Send to all recipients
             for (const recipient of schedule.recipients) {
-                await this.reportGenerator.sendEmail(
+                await this.reportGenerator.sendEmailWithAttachments(
                     recipient,
                     `Dashboard Report: ${schedule.name}`,
-                    reportBuffer,
-                    `report-${schedule.dashboardId}.pdf`
+                    attachments
                 );
             }
 
             // Log success
             await this.logExecution(schedule.id, 'SUCCESS', null, Date.now() - startTime);
+            const completedAt = new Date();
             
-            // Update lastRun
+            // Update execution timestamps using real CRON calculation
             await this.prisma.schedule.update({
                 where: { id: schedule.id },
-                data: { lastRun: new Date() },
+                data: {
+                    lastRun: executedAt,
+                    nextRun: getNextRunFromCron(schedule.cronExpression, completedAt),
+                },
             });
 
             console.log(`[ScheduleWorker] Job ${schedule.id} completed successfully`);
         } catch (error: any) {
             console.error(`[ScheduleWorker] Job ${schedule.id} failed:`, error);
+
+            try {
+                await this.prisma.schedule.update({
+                    where: { id: schedule.id },
+                    data: {
+                        nextRun: getNextRunFromCron(schedule.cronExpression, new Date()),
+                    },
+                });
+            } catch (updateError) {
+                console.error(`[ScheduleWorker] Failed to update nextRun for ${schedule.id}:`, updateError);
+            }
             
             // Log failure
             await this.logExecution(schedule.id, 'FAILED', error.message, Date.now() - startTime);

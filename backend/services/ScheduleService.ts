@@ -1,5 +1,6 @@
 import { PrismaClient, ExportFormat } from '@prisma/client';
 import { prisma as prismaClient } from '@/lib/prisma';
+import { getNextRunFromCron, isValidCronExpression } from '@/backend/utils/cron';
 import { scheduleWorker } from '../workers/ScheduleWorker';
 
 interface CreateScheduleDto {
@@ -34,7 +35,7 @@ export class ScheduleService {
      */
     async createSchedule(data: CreateScheduleDto) {
         // Validate CRON expression
-        if (!this.isValidCronExpression(data.cronExpr)) {
+        if (!isValidCronExpression(data.cronExpr)) {
             throw new Error('Invalid CRON expression');
         }
 
@@ -51,7 +52,7 @@ export class ScheduleService {
         }
 
         // Calculate next run time
-        const nextRun = this.calculateNextRun(data.cronExpr);
+        const nextRun = getNextRunFromCron(data.cronExpr);
 
         const schedule = await this.prisma.schedule.create({
             data: {
@@ -130,7 +131,7 @@ export class ScheduleService {
         }
 
         // Validate CRON if provided
-        if (data.cronExpr && !this.isValidCronExpression(data.cronExpr)) {
+        if (data.cronExpr && !isValidCronExpression(data.cronExpr)) {
             throw new Error('Invalid CRON expression');
         }
 
@@ -146,7 +147,9 @@ export class ScheduleService {
         // Calculate new next run if cron changed
         const updateData: any = { ...data };
         if (data.cronExpr) {
-            updateData.nextRun = this.calculateNextRun(data.cronExpr);
+            updateData.nextRun = getNextRunFromCron(data.cronExpr);
+        } else if (data.isActive === true) {
+            updateData.nextRun = getNextRunFromCron(existing.cronExpr);
         }
 
         const schedule = await this.prisma.schedule.update({
@@ -216,7 +219,12 @@ export class ScheduleService {
 
         const schedule = await this.prisma.schedule.update({
             where: { id },
-            data: { isActive: newStatus },
+            data: newStatus
+                ? {
+                    isActive: true,
+                    nextRun: getNextRunFromCron(existing.cronExpr),
+                }
+                : { isActive: false },
         });
 
         // Update worker
@@ -238,34 +246,11 @@ export class ScheduleService {
     }
 
     /**
-     * Validate CRON expression
-     */
-    private isValidCronExpression(expr: string): boolean {
-        // Basic validation - 5 or 6 parts
-        const parts = expr.trim().split(/\s+/);
-        return parts.length >= 5 && parts.length <= 6;
-    }
-
-    /**
      * Validate email format
      */
     private isValidEmail(email: string): boolean {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
-    }
-
-    /**
-     * Calculate next run time from CRON expression
-     */
-    private calculateNextRun(cronExpr: string): Date {
-        // Simplified - in production use a proper CRON parser
-        // For now, return next hour
-        const next = new Date();
-        next.setHours(next.getHours() + 1);
-        next.setMinutes(0);
-        next.setSeconds(0);
-        next.setMilliseconds(0);
-        return next;
     }
 
     /**

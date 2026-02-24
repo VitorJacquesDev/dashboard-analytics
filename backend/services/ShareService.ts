@@ -1,4 +1,5 @@
 import { PrismaClient, Permission } from '@prisma/client';
+import { prisma as prismaClient } from '@/lib/prisma';
 
 interface ShareResult {
     id: string;
@@ -20,7 +21,7 @@ export class ShareService {
     private prisma: PrismaClient;
 
     constructor(prisma?: PrismaClient) {
-        this.prisma = prisma || new PrismaClient();
+        this.prisma = prisma ?? prismaClient;
     }
 
     /**

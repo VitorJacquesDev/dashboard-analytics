@@ -1,4 +1,5 @@
 import { PrismaClient, ExportFormat } from '@prisma/client';
+import { prisma as prismaClient } from '@/lib/prisma';
 import { scheduleWorker } from '../workers/ScheduleWorker';
 
 interface CreateScheduleDto {
@@ -25,7 +26,7 @@ export class ScheduleService {
     private prisma: PrismaClient;
 
     constructor(prisma?: PrismaClient) {
-        this.prisma = prisma || new PrismaClient();
+        this.prisma = prisma ?? prismaClient;
     }
 
     /**

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateJWT } from '@/backend/middleware/auth';
 import { shareService } from '@/backend/services/ShareService';
+import { apiError, errorMessageIncludes, hasErrorMessage } from '@/backend/utils/api-error';
 
 /**
  * GET /api/dashboards/[id]/share - List all shares for a dashboard
@@ -16,14 +17,14 @@ export async function GET(
         const { id: dashboardId } = await params;
         const shares = await shareService.getSharedWith(dashboardId, authResult.user.id);
         return NextResponse.json(shares);
-    } catch (error: any) {
-        if (error.message === 'Dashboard not found') {
-            return NextResponse.json({ error: error.message }, { status: 404 });
+    } catch (error: unknown) {
+        if (hasErrorMessage(error, 'Dashboard not found')) {
+            return apiError(error, { status: 404, request: req });
         }
-        if (error.message === 'Access denied') {
-            return NextResponse.json({ error: error.message }, { status: 403 });
+        if (hasErrorMessage(error, 'Access denied')) {
+            return apiError(error, { status: 403, request: req });
         }
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return apiError(error, { status: 500, request: req });
     }
 }
 
@@ -42,18 +43,12 @@ export async function POST(
         const body = await req.json();
 
         if (!body.email && !body.userId) {
-            return NextResponse.json(
-                { error: 'Either email or userId is required' },
-                { status: 400 }
-            );
+            return apiError('Either email or userId is required', { status: 400, request: req });
         }
 
         const permission = body.permission || 'VIEW';
         if (!['VIEW', 'EDIT'].includes(permission)) {
-            return NextResponse.json(
-                { error: 'Permission must be VIEW or EDIT' },
-                { status: 400 }
-            );
+            return apiError('Permission must be VIEW or EDIT', { status: 400, request: req });
         }
 
         let share;
@@ -74,14 +69,18 @@ export async function POST(
         }
 
         return NextResponse.json(share, { status: 201 });
-    } catch (error: any) {
-        if (error.message === 'Dashboard not found' || error.message === 'User not found' || error.message === 'User with this email not found') {
-            return NextResponse.json({ error: error.message }, { status: 404 });
+    } catch (error: unknown) {
+        if (
+            hasErrorMessage(error, 'Dashboard not found') ||
+            hasErrorMessage(error, 'User not found') ||
+            hasErrorMessage(error, 'User with this email not found')
+        ) {
+            return apiError(error, { status: 404, request: req });
         }
-        if (error.message.includes('Only dashboard owner') || error.message.includes('Cannot share')) {
-            return NextResponse.json({ error: error.message }, { status: 403 });
+        if (errorMessageIncludes(error, 'Only dashboard owner') || errorMessageIncludes(error, 'Cannot share')) {
+            return apiError(error, { status: 403, request: req });
         }
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return apiError(error, { status: 400, request: req });
     }
 }
 
@@ -101,21 +100,18 @@ export async function DELETE(
         const userId = searchParams.get('userId');
 
         if (!userId) {
-            return NextResponse.json(
-                { error: 'userId query parameter is required' },
-                { status: 400 }
-            );
+            return apiError('userId query parameter is required', { status: 400, request: req });
         }
 
         await shareService.revoke(dashboardId, userId, authResult.user.id);
         return NextResponse.json({ success: true });
-    } catch (error: any) {
-        if (error.message === 'Dashboard not found' || error.message === 'Share not found') {
-            return NextResponse.json({ error: error.message }, { status: 404 });
+    } catch (error: unknown) {
+        if (hasErrorMessage(error, 'Dashboard not found') || hasErrorMessage(error, 'Share not found')) {
+            return apiError(error, { status: 404, request: req });
         }
-        if (error.message.includes('Only dashboard owner')) {
-            return NextResponse.json({ error: error.message }, { status: 403 });
+        if (errorMessageIncludes(error, 'Only dashboard owner')) {
+            return apiError(error, { status: 403, request: req });
         }
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return apiError(error, { status: 500, request: req });
     }
 }

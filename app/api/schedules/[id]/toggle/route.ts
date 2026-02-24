@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateJWT } from '@/backend/middleware/auth';
 import { scheduleService } from '@/backend/services/ScheduleService';
+import { apiError, hasErrorMessage } from '@/backend/utils/api-error';
 
 /**
  * POST /api/schedules/[id]/toggle - Toggle schedule active status
@@ -16,13 +17,13 @@ export async function POST(
         const { id } = await params;
         const schedule = await scheduleService.toggleSchedule(id, authResult.user.id);
         return NextResponse.json(schedule);
-    } catch (error: any) {
-        if (error.message === 'Schedule not found') {
-            return NextResponse.json({ error: error.message }, { status: 404 });
+    } catch (error: unknown) {
+        if (hasErrorMessage(error, 'Schedule not found')) {
+            return apiError(error, { status: 404, request: req });
         }
-        if (error.message === 'Access denied') {
-            return NextResponse.json({ error: error.message }, { status: 403 });
+        if (hasErrorMessage(error, 'Access denied')) {
+            return apiError(error, { status: 403, request: req });
         }
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return apiError(error, { status: 500, request: req });
     }
 }

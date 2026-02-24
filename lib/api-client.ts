@@ -8,20 +8,17 @@ interface RequestOptions extends RequestInit {
 
 class ApiClient {
     private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-        const { token, logout } = useAuthStore.getState();
+        const { logout } = useAuthStore.getState();
 
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             ...options.headers,
         };
 
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
         const config: RequestInit = {
             ...options,
             headers,
+            credentials: options.credentials ?? 'include',
         };
 
         try {

@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom';
 
+process.env.JWT_SECRET ??= 'test-jwt-secret';
+
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
     observe: jest.fn(),

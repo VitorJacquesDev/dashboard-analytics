@@ -1,8 +1,17 @@
 import jwt from 'jsonwebtoken';
 import { Role } from '@/lib/types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '24h';
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+
+  return secret;
+}
 
 export interface JWTPayload {
   userId: string;
@@ -18,8 +27,8 @@ export interface JWTPayload {
  * @returns JWT token string
  */
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRATION,
+  return jwt.sign(payload, getJwtSecret(), {
+    expiresIn: JWT_EXPIRATION as jwt.SignOptions['expiresIn'],
   });
 }
 
@@ -31,7 +40,7 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
  */
 export function verifyToken(token: string): JWTPayload {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return jwt.verify(token, getJwtSecret()) as JWTPayload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw new Error('Token expired');

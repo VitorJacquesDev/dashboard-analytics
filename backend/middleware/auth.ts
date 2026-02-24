@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/backend/services/AuthService';
+import { apiError } from '@/backend/utils/api-error';
+import { getAuthTokenFromCookie } from '@/lib/auth-cookie';
 import { User } from '@/lib/types';
 
 export interface AuthenticatedRequest extends NextRequest {
@@ -16,20 +18,15 @@ export async function authenticateJWT(
   try {
     // Extract token from Authorization header
     const authHeader = request.headers.get('authorization');
-    const token = authService.extractTokenFromHeader(authHeader);
+    const token =
+      authService.extractTokenFromHeader(authHeader) ?? getAuthTokenFromCookie(request);
 
     if (!token) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'No token provided',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return apiError('No token provided', {
+        status: 401,
+        code: 'UNAUTHORIZED',
+        request,
+      });
     }
 
     // Validate token and get user
@@ -37,18 +34,11 @@ export async function authenticateJWT(
 
     return { user };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Authentication failed';
-    return NextResponse.json(
-      {
-        error: {
-          code: 'UNAUTHORIZED',
-          message,
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 401 }
-    );
+    return apiError(error, {
+      status: 401,
+      code: 'UNAUTHORIZED',
+      request,
+    });
   }
 }
 
@@ -65,32 +55,18 @@ export async function requirePermission(
     const hasPermission = await authService.checkPermission(user.id, resource, action);
 
     if (!hasPermission) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'FORBIDDEN',
-            message: 'Insufficient permissions',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 403 }
-      );
+      return apiError('Insufficient permissions', {
+        status: 403,
+        code: 'FORBIDDEN',
+      });
     }
 
     return true;
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Permission check failed',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 403 }
-    );
+    return apiError('Permission check failed', {
+      status: 403,
+      code: 'FORBIDDEN',
+    });
   }
 }
 

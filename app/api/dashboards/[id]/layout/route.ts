@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateJWT } from '@/backend/middleware/auth';
 import { layoutService } from '@/backend/services/LayoutService';
 import { dashboardService } from '@/backend/services/DashboardService';
+import { apiError, errorMessageIncludes, hasErrorMessage } from '@/backend/utils/api-error';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const authResult = await authenticateJWT(req);
@@ -13,7 +14,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const { layout } = body;
 
         if (!layout) {
-            return NextResponse.json({ error: 'Layout is required' }, { status: 400 });
+            return apiError('Layout is required', { status: 400, request: req });
         }
 
         // Verify user has access to modify this dashboard
@@ -27,14 +28,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         );
 
         return NextResponse.json(updatedLayout);
-    } catch (error: any) {
-        if (error.message === 'Access denied' || error.message.includes('Insufficient permissions')) {
-            return NextResponse.json({ error: error.message }, { status: 403 });
+    } catch (error: unknown) {
+        if (hasErrorMessage(error, 'Access denied') || errorMessageIncludes(error, 'Insufficient permissions')) {
+            return apiError(error, { status: 403, request: req });
         }
-        if (error.message === 'Dashboard not found') {
-            return NextResponse.json({ error: error.message }, { status: 404 });
+        if (hasErrorMessage(error, 'Dashboard not found')) {
+            return apiError(error, { status: 404, request: req });
         }
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return apiError(error, { status: 500, request: req });
     }
 }
 
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         // Verify user has access to this dashboard
         const hasAccess = await dashboardService.hasAccess(dashboardId, authResult.user.id);
         if (!hasAccess) {
-            return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+            return apiError('Access denied', { status: 403, request: req });
         }
 
         const layout = await layoutService.getLayoutByUserAndDashboard(
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         return NextResponse.json(layout);
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        return apiError(error, { status: 500, request: req });
     }
 }

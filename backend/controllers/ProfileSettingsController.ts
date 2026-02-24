@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { profileSettingsService } from '@/backend/services/ProfileSettingsService';
 import { authenticateJWT } from '@/backend/middleware/auth';
+import { apiError, errorMessageIncludes } from '@/backend/utils/api-error';
 
 export class ProfileSettingsController {
   /**
@@ -14,8 +15,8 @@ export class ProfileSettingsController {
 
       const settings = await profileSettingsService.getProfileSettingsByUserId(authResult.user.id);
       return NextResponse.json(settings);
-    } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    } catch (error: unknown) {
+      return apiError(error, { status: 400, request: req });
     }
   }
 
@@ -35,9 +36,9 @@ export class ProfileSettingsController {
       });
 
       return NextResponse.json(settings, { status: 201 });
-    } catch (error: any) {
-      const status = error.message.includes('already exist') ? 409 : 400;
-      return NextResponse.json({ error: error.message }, { status });
+    } catch (error: unknown) {
+      const status = errorMessageIncludes(error, 'already exist') ? 409 : 400;
+      return apiError(error, { status, request: req });
     }
   }
 
@@ -54,8 +55,8 @@ export class ProfileSettingsController {
       const settings = await profileSettingsService.updateProfileSettings(authResult.user.id, body);
 
       return NextResponse.json(settings);
-    } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    } catch (error: unknown) {
+      return apiError(error, { status: 400, request: req });
     }
   }
 
@@ -70,9 +71,9 @@ export class ProfileSettingsController {
 
       await profileSettingsService.deleteProfileSettings(authResult.user.id);
       return NextResponse.json({ message: 'Profile settings deleted successfully' });
-    } catch (error: any) {
-      const status = error.message.includes('not found') ? 404 : 400;
-      return NextResponse.json({ error: error.message }, { status });
+    } catch (error: unknown) {
+      const status = errorMessageIncludes(error, 'not found') ? 404 : 400;
+      return apiError(error, { status, request: req });
     }
   }
 
@@ -87,8 +88,8 @@ export class ProfileSettingsController {
 
       const settings = await profileSettingsService.resetProfileSettings(authResult.user.id);
       return NextResponse.json(settings);
-    } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    } catch (error: unknown) {
+      return apiError(error, { status: 400, request: req });
     }
   }
 

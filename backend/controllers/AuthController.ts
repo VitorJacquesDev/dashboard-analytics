@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/backend/services/AuthService';
 import { userService } from '@/backend/services/UserService';
 import { authenticateJWT } from '@/backend/middleware/auth';
+import { apiError } from '@/backend/utils/api-error';
+import { parseJsonBody } from '@/backend/validation/request';
+import { authLoginSchema, authRegisterSchema } from '@/backend/validation/schemas';
+import { setAuthCookie } from '@/lib/auth-cookie';
+import { AuthToken } from '@/lib/types';
+
+function createSessionResponse(authToken: AuthToken, status = 200) {
+    const { token, ...session } = authToken;
+    const response = NextResponse.json(session, { status });
+    setAuthCookie(response, token);
+    return response;
+}
 
 export class AuthController {
     /**
@@ -9,20 +21,17 @@ export class AuthController {
      */
     async register(req: NextRequest) {
         try {
-            const body = await req.json();
+            const body = await parseJsonBody(req, authRegisterSchema);
 
             // Create user
             await userService.createUser(body);
 
             // Auto login after registration
-            const token = await authService.login(body.email, body.password);
+            const authToken = await authService.login(body.email, body.password);
 
-            return NextResponse.json(token, { status: 201 });
-        } catch (error: any) {
-            return NextResponse.json(
-                { error: error.message },
-                { status: 400 }
-            );
+            return createSessionResponse(authToken, 201);
+        } catch (error: unknown) {
+            return apiError(error, { status: 400, request: req });
         }
     }
 
@@ -31,14 +40,11 @@ export class AuthController {
      */
     async login(req: NextRequest) {
         try {
-            const body = await req.json();
-            const token = await authService.login(body.email, body.password);
-            return NextResponse.json(token);
-        } catch (error: any) {
-            return NextResponse.json(
-                { error: error.message },
-                { status: 401 }
-            );
+            const body = await parseJsonBody(req, authLoginSchema);
+            const authToken = await authService.login(body.email, body.password);
+            return createSessionResponse(authToken);
+        } catch (error: unknown) {
+            return apiError(error, { status: 401, code: 'UNAUTHORIZED', request: req });
         }
     }
 

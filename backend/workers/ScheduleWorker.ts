@@ -1,5 +1,6 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { PrismaClient } from '@prisma/client';
+import { prisma as prismaClient } from '@/lib/prisma';
 import { ReportGenerator } from './ReportGenerator';
 
 interface ScheduleJob {
@@ -22,7 +23,7 @@ export class ScheduleWorker {
     private isRunning: boolean = false;
 
     constructor(prisma?: PrismaClient) {
-        this.prisma = prisma || new PrismaClient();
+        this.prisma = prisma ?? prismaClient;
         this.reportGenerator = new ReportGenerator(this.prisma);
     }
 

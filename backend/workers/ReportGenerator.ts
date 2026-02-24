@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { prisma as prismaClient } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
 
 /**
@@ -9,7 +10,7 @@ export class ReportGenerator {
     private transporter: nodemailer.Transporter;
 
     constructor(prisma?: PrismaClient) {
-        this.prisma = prisma || new PrismaClient();
+        this.prisma = prisma ?? prismaClient;
         this.transporter = this.createTransporter();
     }
 

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dashboardService } from '@/backend/services/DashboardService';
 import { authenticateJWT } from '@/backend/middleware/auth';
+import { apiError, errorMessageIncludes, hasErrorMessage } from '@/backend/utils/api-error';
+import { parseJsonBody } from '@/backend/validation/request';
+import { dashboardCreateSchema, dashboardUpdateSchema } from '@/backend/validation/schemas';
 
 export class DashboardController {
     /**
@@ -11,14 +14,14 @@ export class DashboardController {
         if (authResult instanceof NextResponse) return authResult;
 
         try {
-            const body = await req.json();
+            const body = await parseJsonBody(req, dashboardCreateSchema);
             const dashboard = await dashboardService.createDashboard({
                 ...body,
                 userId: authResult.user.id,
             });
             return NextResponse.json(dashboard, { status: 201 });
-        } catch (error: any) {
-            return NextResponse.json({ error: error.message }, { status: 400 });
+        } catch (error: unknown) {
+            return apiError(error, { status: 400, request: req });
         }
     }
 
@@ -32,8 +35,8 @@ export class DashboardController {
         try {
             const dashboards = await dashboardService.getDashboardsByUser(authResult.user.id);
             return NextResponse.json(dashboards);
-        } catch (error: any) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        } catch (error: unknown) {
+            return apiError(error, { status: 500, request: req });
         }
     }
 
@@ -51,15 +54,15 @@ export class DashboardController {
             // Check access
             const hasAccess = await dashboardService.hasAccess(id, authResult.user.id);
             if (!hasAccess && dashboard.userId !== authResult.user.id && !dashboard.isPublic) {
-                return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+                return apiError('Access denied', { status: 403, request: req });
             }
 
             return NextResponse.json(dashboard);
-        } catch (error: any) {
-            if (error.message === 'Dashboard not found') {
-                return NextResponse.json({ error: error.message }, { status: 404 });
+        } catch (error: unknown) {
+            if (hasErrorMessage(error, 'Dashboard not found')) {
+                return apiError(error, { status: 404, request: req });
             }
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return apiError(error, { status: 500, request: req });
         }
     }
 
@@ -72,21 +75,21 @@ export class DashboardController {
 
         try {
             const { id } = await params;
-            const body = await req.json();
+            const body = await parseJsonBody(req, dashboardUpdateSchema);
 
             // Verify permission
             await dashboardService.verifyModifyPermission(id, authResult.user.id);
 
             const dashboard = await dashboardService.updateDashboard(id, body);
             return NextResponse.json(dashboard);
-        } catch (error: any) {
-            if (error.message === 'Access denied' || error.message.includes('Insufficient permissions')) {
-                return NextResponse.json({ error: error.message }, { status: 403 });
+        } catch (error: unknown) {
+            if (hasErrorMessage(error, 'Access denied') || errorMessageIncludes(error, 'Insufficient permissions')) {
+                return apiError(error, { status: 403, request: req });
             }
-            if (error.message === 'Dashboard not found') {
-                return NextResponse.json({ error: error.message }, { status: 404 });
+            if (hasErrorMessage(error, 'Dashboard not found')) {
+                return apiError(error, { status: 404, request: req });
             }
-            return NextResponse.json({ error: error.message }, { status: 400 });
+            return apiError(error, { status: 400, request: req });
         }
     }
 
@@ -105,14 +108,14 @@ export class DashboardController {
 
             await dashboardService.deleteDashboard(id);
             return NextResponse.json({ success: true });
-        } catch (error: any) {
-            if (error.message === 'Access denied' || error.message.includes('Only dashboard owner')) {
-                return NextResponse.json({ error: error.message }, { status: 403 });
+        } catch (error: unknown) {
+            if (hasErrorMessage(error, 'Access denied') || errorMessageIncludes(error, 'Only dashboard owner')) {
+                return apiError(error, { status: 403, request: req });
             }
-            if (error.message === 'Dashboard not found') {
-                return NextResponse.json({ error: error.message }, { status: 404 });
+            if (hasErrorMessage(error, 'Dashboard not found')) {
+                return apiError(error, { status: 404, request: req });
             }
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return apiError(error, { status: 500, request: req });
         }
     }
 }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ExportFormat } from '@prisma/client';
 import { authenticateJWT } from '@/backend/middleware/auth';
 import { scheduleService } from '@/backend/services/ScheduleService';
+import { apiError } from '@/backend/utils/api-error';
+import { parseJsonBody } from '@/backend/validation/request';
+import { scheduleCreateSchema } from '@/backend/validation/schemas';
 
 /**
  * GET /api/schedules - List all schedules for current user
@@ -12,8 +16,8 @@ export async function GET(req: NextRequest) {
     try {
         const schedules = await scheduleService.getSchedulesByUser(authResult.user.id);
         return NextResponse.json(schedules);
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        return apiError(error, { status: 500, request: req });
     }
 }
 
@@ -25,27 +29,19 @@ export async function POST(req: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
 
     try {
-        const body = await req.json();
-        
-        // Validate required fields
-        if (!body.name || !body.cronExpr || !body.dashboardId || !body.recipients) {
-            return NextResponse.json(
-                { error: 'Missing required fields: name, cronExpr, dashboardId, recipients' },
-                { status: 400 }
-            );
-        }
+        const body = await parseJsonBody(req, scheduleCreateSchema);
 
         const schedule = await scheduleService.createSchedule({
             userId: authResult.user.id,
             name: body.name,
             cronExpr: body.cronExpr,
             dashboardId: body.dashboardId,
-            format: body.format || ['PDF'],
+            format: body.format ?? [ExportFormat.PDF],
             recipients: body.recipients,
         });
 
         return NextResponse.json(schedule, { status: 201 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+    } catch (error: unknown) {
+        return apiError(error, { status: 400, request: req });
     }
 }

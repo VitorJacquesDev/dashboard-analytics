@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '../ThemeToggle';
 
 export function Header() {
-    const { user, logout } = useAuthStore();
+    const { user, logoutServer } = useAuthStore();
     const router = useRouter();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logoutServer();
         router.push('/login');
     };
 
@@ -36,7 +36,9 @@ export function Header() {
                         {user?.name?.[0] || 'U'}
                     </div>
                     <button
-                        onClick={handleLogout}
+                        onClick={() => {
+                            void handleLogout();
+                        }}
                         className="text-sm text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-all duration-200 font-medium"
                     >
                         Logout

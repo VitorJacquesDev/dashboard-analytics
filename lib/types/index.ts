@@ -135,8 +135,11 @@ export interface ErrorResponse {
   };
 }
 
-export interface AuthToken {
-  token: string;
+export interface AuthSession {
   expiresIn: string;
   user: User;
+}
+
+export interface AuthToken extends AuthSession {
+  token: string;
 }

@@ -1,9 +1,8 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { comparePassword } from '@/lib/utils/password';
 import { generateToken, verifyToken, JWTPayload } from '@/lib/utils/jwt';
 import { AuthToken, User } from '@/lib/types';
-
-const prisma = new PrismaClient();
 
 export class AuthService {
   /**

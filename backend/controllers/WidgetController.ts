@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { widgetService } from '@/backend/services/WidgetService';
 import { dashboardService } from '@/backend/services/DashboardService';
 import { authenticateJWT } from '@/backend/middleware/auth';
+import { apiError, errorMessageIncludes, hasErrorMessage } from '@/backend/utils/api-error';
+import { parseJsonBody } from '@/backend/validation/request';
+import { widgetCreateSchema, widgetUpdateSchema } from '@/backend/validation/schemas';
 
 export class WidgetController {
     /**
@@ -12,22 +15,18 @@ export class WidgetController {
         if (authResult instanceof NextResponse) return authResult;
 
         try {
-            const body = await req.json();
+            const body = await parseJsonBody(req, widgetCreateSchema);
 
-            // Verify user has access to the dashboard
-            const hasAccess = await dashboardService.hasAccess(body.dashboardId, authResult.user.id);
-            if (!hasAccess) {
-                // Also check modify permission specifically
-                await dashboardService.verifyModifyPermission(body.dashboardId, authResult.user.id);
-            }
+            // Creating a widget always requires write access, not just visibility.
+            await dashboardService.verifyModifyPermission(body.dashboardId, authResult.user.id);
 
             const widget = await widgetService.createWidget(body);
             return NextResponse.json(widget, { status: 201 });
-        } catch (error: any) {
-            if (error.message === 'Access denied' || error.message.includes('Insufficient permissions')) {
-                return NextResponse.json({ error: error.message }, { status: 403 });
+        } catch (error: unknown) {
+            if (hasErrorMessage(error, 'Access denied') || errorMessageIncludes(error, 'Insufficient permissions')) {
+                return apiError(error, { status: 403, request: req });
             }
-            return NextResponse.json({ error: error.message }, { status: 400 });
+            return apiError(error, { status: 400, request: req });
         }
     }
 
@@ -47,14 +46,14 @@ export class WidgetController {
                 // Check if public
                 const dashboard = await dashboardService.getDashboardById(id);
                 if (!dashboard.isPublic) {
-                    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+                    return apiError('Access denied', { status: 403, request: req });
                 }
             }
 
             const widgets = await widgetService.getWidgetsByDashboard(id);
             return NextResponse.json(widgets);
-        } catch (error: any) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        } catch (error: unknown) {
+            return apiError(error, { status: 500, request: req });
         }
     }
 
@@ -67,7 +66,7 @@ export class WidgetController {
 
         try {
             const { id } = await params;
-            const body = await req.json();
+            const body = await parseJsonBody(req, widgetUpdateSchema);
 
             // Get widget to find dashboardId
             const widget = await widgetService.getWidgetById(id);
@@ -77,14 +76,14 @@ export class WidgetController {
 
             const updatedWidget = await widgetService.updateWidget(id, body);
             return NextResponse.json(updatedWidget);
-        } catch (error: any) {
-            if (error.message === 'Widget not found') {
-                return NextResponse.json({ error: error.message }, { status: 404 });
+        } catch (error: unknown) {
+            if (hasErrorMessage(error, 'Widget not found')) {
+                return apiError(error, { status: 404, request: req });
             }
-            if (error.message === 'Access denied' || error.message.includes('Insufficient permissions')) {
-                return NextResponse.json({ error: error.message }, { status: 403 });
+            if (hasErrorMessage(error, 'Access denied') || errorMessageIncludes(error, 'Insufficient permissions')) {
+                return apiError(error, { status: 403, request: req });
             }
-            return NextResponse.json({ error: error.message }, { status: 400 });
+            return apiError(error, { status: 400, request: req });
         }
     }
 
@@ -106,14 +105,14 @@ export class WidgetController {
 
             await widgetService.deleteWidget(id);
             return NextResponse.json({ success: true });
-        } catch (error: any) {
-            if (error.message === 'Widget not found') {
-                return NextResponse.json({ error: error.message }, { status: 404 });
+        } catch (error: unknown) {
+            if (hasErrorMessage(error, 'Widget not found')) {
+                return apiError(error, { status: 404, request: req });
             }
-            if (error.message === 'Access denied' || error.message.includes('Insufficient permissions')) {
-                return NextResponse.json({ error: error.message }, { status: 403 });
+            if (hasErrorMessage(error, 'Access denied') || errorMessageIncludes(error, 'Insufficient permissions')) {
+                return apiError(error, { status: 403, request: req });
             }
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return apiError(error, { status: 500, request: req });
         }
     }
 
@@ -133,17 +132,17 @@ export class WidgetController {
             if (!hasAccess) {
                 const dashboard = await dashboardService.getDashboardById(widget.dashboardId);
                 if (!dashboard.isPublic) {
-                    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+                    return apiError('Access denied', { status: 403, request: req });
                 }
             }
 
             const data = await widgetService.getWidgetData(id);
             return NextResponse.json(data);
-        } catch (error: any) {
-            if (error.message === 'Widget not found') {
-                return NextResponse.json({ error: error.message }, { status: 404 });
+        } catch (error: unknown) {
+            if (hasErrorMessage(error, 'Widget not found')) {
+                return apiError(error, { status: 404, request: req });
             }
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return apiError(error, { status: 500, request: req });
         }
     }
 }

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { prisma as prismaClient } from '@/lib/prisma';
 
 /**
  * Base Repository class providing common database operations
@@ -8,7 +9,7 @@ export abstract class BaseRepository {
   protected prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma ?? prismaClient;
   }
 
   /**

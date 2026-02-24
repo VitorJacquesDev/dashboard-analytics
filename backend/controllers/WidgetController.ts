@@ -5,6 +5,7 @@ import { authenticateJWT } from '@/backend/middleware/auth';
 import { apiError, errorMessageIncludes, hasErrorMessage } from '@/backend/utils/api-error';
 import { parseJsonBody } from '@/backend/validation/request';
 import { widgetCreateSchema, widgetUpdateSchema } from '@/backend/validation/schemas';
+import type { Filter } from '@/lib/types';
 
 export class WidgetController {
     /**
@@ -126,6 +127,7 @@ export class WidgetController {
         try {
             const { id } = await params;
             const widget = await widgetService.getWidgetById(id);
+            const filters = this.parseFilters(req);
 
             // Check access to dashboard
             const hasAccess = await dashboardService.hasAccess(widget.dashboardId, authResult.user.id);
@@ -136,13 +138,40 @@ export class WidgetController {
                 }
             }
 
-            const data = await widgetService.getWidgetData(id);
+            const data = await widgetService.getWidgetData(id, filters);
             return NextResponse.json(data);
         } catch (error: unknown) {
             if (hasErrorMessage(error, 'Widget not found')) {
                 return apiError(error, { status: 404, request: req });
             }
+            if (hasErrorMessage(error, 'Invalid filters query parameter')) {
+                return apiError(error, { status: 400, request: req });
+            }
+            if (
+                errorMessageIncludes(error, 'Unsupported widget data source') ||
+                errorMessageIncludes(error, 'Unsupported widget type for data source') ||
+                errorMessageIncludes(error, 'Invalid widget config')
+            ) {
+                return apiError(error, { status: 400, request: req });
+            }
             return apiError(error, { status: 500, request: req });
+        }
+    }
+
+    private parseFilters(req: NextRequest): Filter[] | undefined {
+        const rawFilters = req.nextUrl.searchParams.get('filters');
+        if (!rawFilters) {
+            return undefined;
+        }
+
+        try {
+            const parsed = JSON.parse(rawFilters) as unknown;
+            if (!Array.isArray(parsed)) {
+                throw new Error('Invalid filters query parameter');
+            }
+            return parsed as Filter[];
+        } catch {
+            throw new Error('Invalid filters query parameter');
         }
     }
 }

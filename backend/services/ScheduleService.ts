@@ -2,6 +2,7 @@ import { PrismaClient, ExportFormat } from '@prisma/client';
 import { prisma as prismaClient } from '@/lib/prisma';
 import { getNextRunFromCron, isValidCronExpression } from '@/backend/utils/cron';
 import { scheduleWorker } from '../workers/ScheduleWorker';
+import { WidgetService } from './WidgetService';
 
 interface CreateScheduleDto {
     userId: string;
@@ -84,6 +85,8 @@ export class ScheduleService {
                 name: schedule.name,
             });
         }
+
+        WidgetService.clearWidgetDataCache();
 
         return schedule;
     }
@@ -172,6 +175,8 @@ export class ScheduleService {
             });
         }
 
+        WidgetService.clearWidgetDataCache();
+
         return schedule;
     }
 
@@ -197,6 +202,8 @@ export class ScheduleService {
         await this.prisma.schedule.delete({
             where: { id },
         });
+
+        WidgetService.clearWidgetDataCache();
     }
 
     /**
@@ -241,6 +248,8 @@ export class ScheduleService {
         } else {
             scheduleWorker.removeJob(id);
         }
+
+        WidgetService.clearWidgetDataCache();
 
         return schedule;
     }

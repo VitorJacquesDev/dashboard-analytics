@@ -5,6 +5,7 @@ import { Layout } from 'react-grid-layout';
 import { Dashboard, Widget } from '@/lib/types';
 import { WidgetGrid } from '@/app/components/widgets/WidgetGrid';
 import { FilterBar } from './FilterBar';
+import { WidgetCreateModal } from './WidgetCreateModal';
 import { useSocket } from '@/app/providers/SocketProvider';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { apiClient } from '@/lib/api-client';
@@ -16,10 +17,11 @@ interface DashboardViewProps {
 
 export function DashboardView({ dashboard, widgets }: DashboardViewProps) {
     const [isEditMode, setIsEditMode] = useState(false);
+    const [isCreateWidgetOpen, setIsCreateWidgetOpen] = useState(false);
     const [localWidgets, setLocalWidgets] = useState<Widget[]>(widgets);
     const [isSaving, setIsSaving] = useState(false);
     const { socket, isConnected } = useSocket();
-    const { updateWidget, activeFilters } = useDashboardStore();
+    const { updateWidget } = useDashboardStore();
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Sync local widgets with props
@@ -93,6 +95,10 @@ export function DashboardView({ dashboard, widgets }: DashboardViewProps) {
         }
     }, []);
 
+    const handleWidgetCreated = useCallback((widget: Widget) => {
+        setLocalWidgets(prev => [...prev, widget]);
+    }, []);
+
     // Cleanup timeout on unmount
     useEffect(() => {
         return () => {
@@ -121,6 +127,12 @@ export function DashboardView({ dashboard, widgets }: DashboardViewProps) {
                 </div>
                 
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsCreateWidgetOpen(true)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                    >
+                        + Add Widget
+                    </button>
                     <button
                         onClick={() => setIsEditMode(!isEditMode)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -154,11 +166,21 @@ export function DashboardView({ dashboard, widgets }: DashboardViewProps) {
                     <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
                         Add widgets to visualize your data
                     </p>
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                    <button
+                        onClick={() => setIsCreateWidgetOpen(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                    >
                         + Add Widget
                     </button>
                 </div>
             )}
+
+            <WidgetCreateModal
+                dashboardId={dashboard.id}
+                isOpen={isCreateWidgetOpen}
+                onClose={() => setIsCreateWidgetOpen(false)}
+                onCreated={handleWidgetCreated}
+            />
         </div>
     );
 }

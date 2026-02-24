@@ -43,7 +43,7 @@ export class LayoutService {
 
     // Save layout
     const layout = await this.layoutRepository.save(data);
-    return layout as Layout;
+    return layout;
   }
 
   /**
@@ -55,7 +55,7 @@ export class LayoutService {
     if (!layout) {
       throw new Error('Layout not found');
     }
-    return layout as Layout;
+    return layout;
   }
 
   /**
@@ -67,7 +67,7 @@ export class LayoutService {
     if (!layout) {
       throw new Error('Layout not found');
     }
-    return layout as Layout;
+    return layout;
   }
 
   /**
@@ -75,7 +75,7 @@ export class LayoutService {
    */
   async getLayoutsByUser(userId: string): Promise<Layout[]> {
     const layouts = await this.layoutRepository.findByUserId(userId);
-    return layouts as Layout[];
+    return layouts;
   }
 
   /**
@@ -83,7 +83,7 @@ export class LayoutService {
    */
   async getLayoutsByDashboard(dashboardId: string): Promise<Layout[]> {
     const layouts = await this.layoutRepository.findByDashboardId(dashboardId);
-    return layouts as Layout[];
+    return layouts;
   }
 
   /**
@@ -113,7 +113,7 @@ export class LayoutService {
 
     // Update layout
     const updatedLayout = await this.layoutRepository.update(userId, dashboardId, data);
-    return updatedLayout as Layout;
+    return updatedLayout;
   }
 
   /**
@@ -167,7 +167,7 @@ export class LayoutService {
     }
 
     const updatedLayout = await this.layoutRepository.updateTheme(userId, dashboardId, theme);
-    return updatedLayout as Layout;
+    return updatedLayout;
   }
 
   /**
@@ -256,7 +256,7 @@ export class LayoutService {
    */
   async getLayoutByUserAndDashboard(userId: string, dashboardId: string): Promise<Layout | null> {
     const layout = await this.layoutRepository.load(userId, dashboardId);
-    return layout as Layout | null;
+    return layout;
   }
 }
 

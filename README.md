@@ -154,7 +154,7 @@ Principais variáveis:
 - `JWT_SECRET` - Chave secreta para JWT
 - `SMTP_*` - Configurações de e-mail
 - `NEXT_PUBLIC_API_URL` - URL da API
-- `NEXT_PUBLIC_WS_URL` - URL do WebSocket
+- `NEXT_PUBLIC_WS_URL` - URL base do Socket.IO/WebSocket
 
 ## 📚 Documentação
 

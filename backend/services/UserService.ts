@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, User as PrismaUserRecord } from '@prisma/client';
 import { UserRepository, CreateUserDto, UpdateUserDto } from '../repositories/UserRepository';
 import { hashPassword } from '@/lib/utils/password';
 import { User } from '@/lib/types';
@@ -167,9 +167,9 @@ export class UserService {
   /**
    * Remove password from user object
    */
-  private sanitizeUser(user: any): User {
-    const { password, ...sanitized } = user;
-    return sanitized as User;
+  private sanitizeUser(user: PrismaUserRecord): User {
+    const { password: _password, ...sanitized } = user;
+    return sanitized;
   }
 }
 

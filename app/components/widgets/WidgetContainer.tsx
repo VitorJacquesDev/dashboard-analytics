@@ -1,6 +1,6 @@
 'use client';
 
-import { Widget, WidgetType } from '@/lib/types';
+import { ChartConfig, Widget, WidgetType } from '@/lib/types';
 import { useWidgetData } from '@/app/hooks/useWidgetData';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { LineChart } from '../charts/LineChart';
@@ -18,7 +18,17 @@ interface WidgetContainerProps {
 
 export function WidgetContainer({ widget }: WidgetContainerProps) {
     const { activeFilters } = useDashboardStore();
-    const { data, isLoading, error } = useWidgetData(widget.id, widget.dataSource, widget.config, activeFilters);
+    const widgetConfig: ChartConfig =
+        widget.config && typeof widget.config === 'object' && !Array.isArray(widget.config)
+            ? (widget.config as ChartConfig)
+            : {};
+
+    const { data, isLoading, error } = useWidgetData(
+        widget.id,
+        widget.dataSource,
+        widgetConfig,
+        activeFilters
+    );
 
     if (isLoading) {
         return (
@@ -46,17 +56,17 @@ export function WidgetContainer({ widget }: WidgetContainerProps) {
 
     switch (widget.type) {
         case WidgetType.LINE_CHART:
-            return <LineChart data={data} config={widget.config} />;
+            return <LineChart data={data} config={widgetConfig} />;
         case WidgetType.BAR_CHART:
-            return <BarChart data={data} config={widget.config} />;
+            return <BarChart data={data} config={widgetConfig} />;
         case WidgetType.PIE_CHART:
-            return <PieChart data={data} config={widget.config} />;
+            return <PieChart data={data} config={widgetConfig} />;
         case WidgetType.AREA_CHART:
-            return <AreaChart data={data} config={widget.config} />;
+            return <AreaChart data={data} config={widgetConfig} />;
         case WidgetType.SCATTER_CHART:
-            return <ScatterChart data={data} config={widget.config} />;
+            return <ScatterChart data={data} config={widgetConfig} />;
         case WidgetType.HEATMAP:
-            return <Heatmap data={data} config={widget.config} />;
+            return <Heatmap data={data} config={widgetConfig} />;
         case WidgetType.TABLE:
             return <TableWidget data={data} />;
         case WidgetType.METRIC:

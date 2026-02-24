@@ -6,18 +6,34 @@ import {
 } from '../repositories/WidgetRepository';
 import { DashboardRepository } from '../repositories/DashboardRepository';
 import { Widget, Filter } from '@/lib/types';
+import {
+  WidgetDataProviderRegistry,
+  createDefaultWidgetDataProviderRegistry,
+} from './widget-data';
+import { validateWidgetConfigByDataSource } from '@/backend/validation/widget-data-source-config';
 
 /**
  * WidgetService - Business logic layer for Widget operations
  * Handles widget management with validation and business rules
  */
 export class WidgetService {
+  private static readonly DEFAULT_WIDGET_DATA_CACHE_TTL_MS = 30_000;
+  private static widgetDataCache = new Map<
+    string,
+    {
+      expiresAt: number;
+      value: any;
+    }
+  >();
+
   private widgetRepository: WidgetRepository;
   private dashboardRepository: DashboardRepository;
+  private widgetDataProviderRegistry: WidgetDataProviderRegistry;
 
   constructor(prisma?: PrismaClient) {
     this.widgetRepository = new WidgetRepository(prisma);
     this.dashboardRepository = new DashboardRepository(prisma);
+    this.widgetDataProviderRegistry = createDefaultWidgetDataProviderRegistry();
   }
 
   /**
@@ -55,9 +71,15 @@ export class WidgetService {
       throw new Error('Widget config must be an object');
     }
 
+    const normalizedConfig = validateWidgetConfigByDataSource(data.dataSource, data.config, data.type);
+
     // Create widget
-    const widget = await this.widgetRepository.create(data);
-    return widget as Widget;
+    const widget = await this.widgetRepository.create({
+      ...data,
+      config: normalizedConfig,
+    });
+    this.invalidateAllWidgetDataCache();
+    return widget;
   }
 
   /**
@@ -69,7 +91,7 @@ export class WidgetService {
     if (!widget) {
       throw new Error('Widget not found');
     }
-    return widget as Widget;
+    return widget;
   }
 
   /**
@@ -77,7 +99,7 @@ export class WidgetService {
    */
   async getWidgetsByDashboard(dashboardId: string): Promise<Widget[]> {
     const widgets = await this.widgetRepository.findByDashboardId(dashboardId);
-    return widgets as Widget[];
+    return widgets;
   }
 
   /**
@@ -91,7 +113,7 @@ export class WidgetService {
     }
   ): Promise<Widget[]> {
     const widgets = await this.widgetRepository.findByType(type, options);
-    return widgets as Widget[];
+    return widgets;
   }
 
   /**
@@ -105,34 +127,59 @@ export class WidgetService {
       throw new Error('Widget not found');
     }
 
+    const normalizedUpdateData: UpdateWidgetDto = { ...data };
+
     // Validate title if provided
-    if (data.title !== undefined) {
-      if (!data.title || data.title.trim().length === 0) {
+    if (normalizedUpdateData.title !== undefined) {
+      if (!normalizedUpdateData.title || normalizedUpdateData.title.trim().length === 0) {
         throw new Error('Widget title is required');
       }
-      if (data.title.length > 200) {
+      if (normalizedUpdateData.title.length > 200) {
         throw new Error('Widget title must be less than 200 characters');
       }
     }
 
     // Validate widget type if provided
-    if (data.type !== undefined && !Object.values(WidgetType).includes(data.type)) {
+    if (
+      normalizedUpdateData.type !== undefined &&
+      !Object.values(WidgetType).includes(normalizedUpdateData.type)
+    ) {
       throw new Error('Invalid widget type');
     }
 
     // Validate data source if provided
-    if (data.dataSource !== undefined && (!data.dataSource || data.dataSource.trim().length === 0)) {
+    if (
+      normalizedUpdateData.dataSource !== undefined &&
+      (!normalizedUpdateData.dataSource || normalizedUpdateData.dataSource.trim().length === 0)
+    ) {
       throw new Error('Widget data source is required');
     }
 
     // Validate config if provided
-    if (data.config !== undefined && (typeof data.config !== 'object' || data.config === null)) {
+    if (
+      normalizedUpdateData.config !== undefined &&
+      (typeof normalizedUpdateData.config !== 'object' || normalizedUpdateData.config === null)
+    ) {
       throw new Error('Widget config must be an object');
     }
 
+    const effectiveType = normalizedUpdateData.type ?? existingWidget.type;
+    const effectiveDataSource = normalizedUpdateData.dataSource ?? existingWidget.dataSource;
+    const effectiveConfig = normalizedUpdateData.config ?? existingWidget.config;
+    const normalizedEffectiveConfig = validateWidgetConfigByDataSource(
+      effectiveDataSource,
+      effectiveConfig,
+      effectiveType
+    );
+
+    if (normalizedUpdateData.config !== undefined) {
+      normalizedUpdateData.config = normalizedEffectiveConfig;
+    }
+
     // Update widget
-    const updatedWidget = await this.widgetRepository.update(id, data);
-    return updatedWidget as Widget;
+    const updatedWidget = await this.widgetRepository.update(id, normalizedUpdateData);
+    this.invalidateAllWidgetDataCache();
+    return updatedWidget;
   }
 
   /**
@@ -146,13 +193,16 @@ export class WidgetService {
     }
 
     await this.widgetRepository.delete(id);
+    this.invalidateAllWidgetDataCache();
   }
 
   /**
    * Delete all widgets from a dashboard
    */
   async deleteWidgetsByDashboard(dashboardId: string): Promise<number> {
-    return this.widgetRepository.deleteByDashboardId(dashboardId);
+    const deletedCount = await this.widgetRepository.deleteByDashboardId(dashboardId);
+    this.invalidateAllWidgetDataCache();
+    return deletedCount;
   }
 
   /**
@@ -179,79 +229,129 @@ export class WidgetService {
       }
     }
 
-    return this.widgetRepository.createMany(widgets);
+    const createdCount = await this.widgetRepository.createMany(widgets);
+    this.invalidateAllWidgetDataCache();
+    return createdCount;
   }
 
   /**
    * Get widget data with filters applied
-   * This is a placeholder for actual data fetching logic
-   * In a real implementation, this would query the data source
+   * Data resolution is delegated to a provider registry (real and mock providers).
    */
   async getWidgetData(id: string, filters?: Filter[]): Promise<any> {
     const widget = await this.getWidgetById(id);
+    const cacheKey = this.buildWidgetDataCacheKey(widget, filters);
+    const cachedEntry = this.getCachedWidgetData(cacheKey);
 
-    // Simulate data fetching based on widget type
-    // In a real app, we would query the database using widget.dataSource
-
-    let data: any[] = [];
-
-    switch (widget.type) {
-      case WidgetType.PIE_CHART:
-        data = [
-          { x: 'Direct', y: Math.floor(Math.random() * 50) + 10 },
-          { x: 'Social', y: Math.floor(Math.random() * 40) + 10 },
-          { x: 'Organic', y: Math.floor(Math.random() * 60) + 20 },
-          { x: 'Referral', y: Math.floor(Math.random() * 30) + 5 },
-        ];
-        break;
-
-      case WidgetType.SCATTER_CHART:
-        data = Array.from({ length: 20 }, () => ({
-          x: Math.floor(Math.random() * 100),
-          y: Math.floor(Math.random() * 100),
-          label: 'Point',
-        }));
-        break;
-
-      case WidgetType.HEATMAP:
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-        const times = ['Morning', 'Afternoon', 'Evening'];
-        days.forEach(day => {
-          times.forEach(time => {
-            data.push({
-              x: day,
-              label: time,
-              y: Math.floor(Math.random() * 100),
-            });
-          });
-        });
-        break;
-
-      case WidgetType.TABLE:
-        data = Array.from({ length: 5 }, (_, i) => ({
-          id: i + 1,
-          name: `Item ${i + 1}`,
-          category: ['A', 'B', 'C'][Math.floor(Math.random() * 3)],
-          value: Math.floor(Math.random() * 1000),
-          status: Math.random() > 0.5 ? 'Active' : 'Inactive',
-        }));
-        break;
-
-      case WidgetType.METRIC:
-        data = [{
-          x: 'Total Revenue',
-          y: Math.floor(Math.random() * 50000) + 10000,
-        }];
-        break;
-
-      default: // LINE_CHART, BAR_CHART, AREA_CHART
-        data = Array.from({ length: 7 }, (_, i) => ({
-          x: `Day ${i + 1}`,
-          y: Math.floor(Math.random() * 100),
-        }));
+    if (cachedEntry) {
+      return cachedEntry.value;
     }
 
+    const data = await this.widgetDataProviderRegistry.getData({
+      prisma: this.widgetRepository.getPrisma(),
+      widget,
+      filters,
+    });
+
+    this.setCachedWidgetData(cacheKey, data);
     return data;
+  }
+
+  private getWidgetDataCacheTTL(): number {
+    const rawTtl = process.env.WIDGET_DATA_CACHE_TTL_MS;
+    const ttlFromEnv = rawTtl ? Number(rawTtl) : NaN;
+
+    if (Number.isFinite(ttlFromEnv) && ttlFromEnv >= 0) {
+      return ttlFromEnv;
+    }
+
+    return WidgetService.DEFAULT_WIDGET_DATA_CACHE_TTL_MS;
+  }
+
+  private buildWidgetDataCacheKey(widget: Widget, filters?: Filter[]): string {
+    const signature = this.stableStringify({
+      updatedAt: widget.updatedAt instanceof Date ? widget.updatedAt.toISOString() : widget.updatedAt,
+      type: widget.type,
+      dataSource: widget.dataSource,
+      config: widget.config,
+      filters: filters ?? [],
+    });
+
+    return `${widget.id}::${signature}`;
+  }
+
+  private getCachedWidgetData(cacheKey: string): { expiresAt: number; value: any } | undefined {
+    this.pruneExpiredWidgetDataCache();
+
+    const entry = WidgetService.widgetDataCache.get(cacheKey);
+    if (!entry) {
+      return undefined;
+    }
+
+    if (entry.expiresAt <= Date.now()) {
+      WidgetService.widgetDataCache.delete(cacheKey);
+      return undefined;
+    }
+
+    return entry;
+  }
+
+  private setCachedWidgetData(cacheKey: string, value: any): void {
+    const ttlMs = this.getWidgetDataCacheTTL();
+    if (ttlMs <= 0) {
+      return;
+    }
+
+    WidgetService.widgetDataCache.set(cacheKey, {
+      value,
+      expiresAt: Date.now() + ttlMs,
+    });
+  }
+
+  private invalidateAllWidgetDataCache(): void {
+    WidgetService.widgetDataCache.clear();
+  }
+
+  private pruneExpiredWidgetDataCache(): void {
+    const now = Date.now();
+
+    for (const [cacheKey, entry] of WidgetService.widgetDataCache.entries()) {
+      if (entry.expiresAt <= now) {
+        WidgetService.widgetDataCache.delete(cacheKey);
+      }
+    }
+  }
+
+  private stableStringify(value: unknown): string {
+    if (value === null || value === undefined) {
+      return JSON.stringify(value) ?? 'null';
+    }
+
+    if (value instanceof Date) {
+      return JSON.stringify(value.toISOString());
+    }
+
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => this.stableStringify(item)).join(',')}]`;
+    }
+
+    if (typeof value !== 'object') {
+      return JSON.stringify(value) ?? 'null';
+    }
+
+    const record = value as Record<string, unknown>;
+    const keys = Object.keys(record).sort();
+    const entries = keys.map((key) => `${JSON.stringify(key)}:${this.stableStringify(record[key])}`);
+
+    return `{${entries.join(',')}}`;
+  }
+
+  static clearWidgetDataCacheForTests(): void {
+    WidgetService.clearWidgetDataCache();
+  }
+
+  static clearWidgetDataCache(): void {
+    WidgetService.widgetDataCache.clear();
   }
 
   /**

@@ -5,21 +5,7 @@ import {
   UpdateProfileSettingsDto,
 } from '../repositories/ProfileSettingsRepository';
 import { UserRepository } from '../repositories/UserRepository';
-
-export interface ProfileSettingsResponse {
-  id: string;
-  userId: string;
-  avatarUrl: string | null;
-  bio: string | null;
-  language: string;
-  timezone: string;
-  theme: Theme;
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  weeklyReportEnabled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { ProfileSettings } from '@/lib/types';
 
 const VALID_LANGUAGES = ['pt-BR', 'en-US', 'es-ES', 'fr-FR', 'de-DE'];
 const VALID_TIMEZONES = [
@@ -49,7 +35,7 @@ export class ProfileSettingsService {
    * Create profile settings for a user
    * @throws Error if user not found or settings already exist
    */
-  async createProfileSettings(data: CreateProfileSettingsDto): Promise<ProfileSettingsResponse> {
+  async createProfileSettings(data: CreateProfileSettingsDto): Promise<ProfileSettings> {
     // Validate user exists
     const user = await this.userRepository.findById(data.userId);
     if (!user) {
@@ -85,7 +71,7 @@ export class ProfileSettingsService {
    * Get profile settings by user ID
    * Creates default settings if they don't exist
    */
-  async getProfileSettingsByUserId(userId: string): Promise<ProfileSettingsResponse> {
+  async getProfileSettingsByUserId(userId: string): Promise<ProfileSettings> {
     // Validate user exists
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -109,7 +95,7 @@ export class ProfileSettingsService {
   async updateProfileSettings(
     userId: string,
     data: UpdateProfileSettingsDto
-  ): Promise<ProfileSettingsResponse> {
+  ): Promise<ProfileSettings> {
     // Validate user exists
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -159,7 +145,7 @@ export class ProfileSettingsService {
   /**
    * Reset profile settings to defaults
    */
-  async resetProfileSettings(userId: string): Promise<ProfileSettingsResponse> {
+  async resetProfileSettings(userId: string): Promise<ProfileSettings> {
     // Validate user exists
     const user = await this.userRepository.findById(userId);
     if (!user) {

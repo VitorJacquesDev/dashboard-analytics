@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Role } from '@/lib/types';
+import type { Role } from '@/lib/types';
 
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '24h';
 

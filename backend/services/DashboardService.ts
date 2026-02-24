@@ -39,7 +39,7 @@ export class DashboardService {
 
     // Create dashboard
     const dashboard = await this.dashboardRepository.create(data);
-    return dashboard as Dashboard;
+    return dashboard;
   }
 
   /**
@@ -51,7 +51,7 @@ export class DashboardService {
     if (!dashboard) {
       throw new Error('Dashboard not found');
     }
-    return dashboard as Dashboard;
+    return dashboard;
   }
 
   /**
@@ -66,7 +66,7 @@ export class DashboardService {
     }
   ): Promise<Dashboard[]> {
     const dashboards = await this.dashboardRepository.findByUserId(userId, options);
-    return dashboards as Dashboard[];
+    return dashboards;
   }
 
   /**
@@ -77,7 +77,7 @@ export class DashboardService {
     take?: number;
   }): Promise<Dashboard[]> {
     const dashboards = await this.dashboardRepository.findPublic(options);
-    return dashboards as Dashboard[];
+    return dashboards;
   }
 
   /**
@@ -108,7 +108,7 @@ export class DashboardService {
 
     // Update dashboard
     const updatedDashboard = await this.dashboardRepository.update(id, data);
-    return updatedDashboard as Dashboard;
+    return updatedDashboard;
   }
 
   /**

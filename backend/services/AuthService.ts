@@ -1,8 +1,7 @@
-import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { comparePassword } from '@/lib/utils/password';
-import { generateToken, verifyToken, JWTPayload } from '@/lib/utils/jwt';
-import { AuthToken, User } from '@/lib/types';
+import { generateToken, verifyToken } from '@/lib/utils/jwt';
+import { AuthToken, Role, User } from '@/lib/types';
 
 export class AuthService {
   /**
@@ -32,7 +31,7 @@ export class AuthService {
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      role: user.role as Role,
+      role: user.role,
     });
 
     // Return token and user info (without password)
@@ -43,7 +42,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role as Role,
+        role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -73,7 +72,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role as Role,
+      role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -101,7 +100,7 @@ export class AuthService {
       return false;
     }
 
-    const role = user.role as Role;
+    const role = user.role;
 
     // Admin has all permissions
     if (role === Role.ADMIN) {

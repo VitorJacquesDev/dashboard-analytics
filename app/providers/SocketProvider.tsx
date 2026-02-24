@@ -13,6 +13,25 @@ const SocketContext = createContext<SocketContextType>({
     isConnected: false,
 });
 
+function resolveSocketServerUrl(): string {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    if (wsUrl) {
+        return wsUrl;
+    }
+
+    const legacySiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (legacySiteUrl) {
+        if (process.env.NODE_ENV !== 'production') {
+            console.warn(
+                '[SocketProvider] NEXT_PUBLIC_SITE_URL is deprecated for socket client. Use NEXT_PUBLIC_WS_URL.'
+            );
+        }
+        return legacySiteUrl;
+    }
+
+    return 'http://localhost:3000';
+}
+
 export const useSocket = () => {
     return useContext(SocketContext);
 };
@@ -22,7 +41,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        const socketInstance = new (ClientIO as any)(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000', {
+        const socketInstance = new (ClientIO as any)(resolveSocketServerUrl(), {
             path: '/api/socket/io',
             addTrailingSlash: false,
         });

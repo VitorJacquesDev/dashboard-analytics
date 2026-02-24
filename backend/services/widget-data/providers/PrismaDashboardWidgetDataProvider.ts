@@ -5,13 +5,14 @@ import { validatePrismaDashboardWidgetOutput } from '../prisma-dashboard-contrac
 
 type JsonRecord = Record<string, unknown>;
 
-const PRISMA_DASHBOARD_PREFIX = 'prisma:dashboard.';
+const PRISMA_DATA_SOURCE_PREFIX = 'prisma:';
+const OPEN_OPERATIONS_TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'BLOCKED'] as const;
 
 export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
-  readonly name = 'prisma-dashboard';
+  readonly name = 'prisma';
 
   canHandle(widget: Widget): boolean {
-    return widget.dataSource.startsWith(PRISMA_DASHBOARD_PREFIX);
+    return widget.dataSource.startsWith(PRISMA_DATA_SOURCE_PREFIX);
   }
 
   async getData({ prisma, widget, filters }: WidgetDataProviderContext): Promise<any[]> {
@@ -27,6 +28,32 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
           return this.getDashboardActiveSchedulesCount(prisma, widget, filters);
         case 'prisma:dashboard.schedules.upcoming':
           return this.getDashboardUpcomingSchedules(prisma, widget, filters);
+        case 'prisma:business.sales.revenue.total':
+          return this.getBusinessSalesRevenueTotal(prisma, widget);
+        case 'prisma:business.sales.revenue.timeline':
+          return this.getBusinessSalesRevenueTimeline(prisma, widget);
+        case 'prisma:business.sales.orders.by_status':
+          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'status');
+        case 'prisma:business.sales.orders.by_region':
+          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'region');
+        case 'prisma:business.sales.orders.by_channel':
+          return this.getBusinessSalesOrdersGrouped(prisma, widget, 'channel');
+        case 'prisma:business.marketing.leads.conversion_rate':
+          return this.getBusinessMarketingLeadsConversionRate(prisma, widget);
+        case 'prisma:business.marketing.leads.timeline':
+          return this.getBusinessMarketingLeadsTimeline(prisma, widget);
+        case 'prisma:business.marketing.leads.by_channel':
+          return this.getBusinessMarketingLeadsGrouped(prisma, widget, 'channel');
+        case 'prisma:business.marketing.leads.by_stage':
+          return this.getBusinessMarketingLeadsGrouped(prisma, widget, 'stage');
+        case 'prisma:business.operations.tickets.open_count':
+          return this.getBusinessOperationsTicketsOpenCount(prisma, widget);
+        case 'prisma:business.operations.tickets.timeline':
+          return this.getBusinessOperationsTicketsTimeline(prisma, widget);
+        case 'prisma:business.operations.tickets.by_priority':
+          return this.getBusinessOperationsTicketsByPriority(prisma, widget);
+        case 'prisma:business.operations.sla.compliance_rate':
+          return this.getBusinessOperationsSlaComplianceRate(prisma, widget);
         default:
           throw new Error(`Unsupported widget data source: ${widget.dataSource}`);
       }
@@ -201,6 +228,331 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
     }));
   }
 
+  private async getBusinessSalesRevenueTotal(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const aggregated = await prisma.salesOrder.aggregate({
+      where: {
+        dashboardId: widget.dashboardId,
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    return [
+      {
+        x: 'Revenue',
+        y: Number(aggregated._sum.totalAmount ?? 0),
+      },
+    ];
+  }
+
+  private async getBusinessSalesRevenueTimeline(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const config = this.getConfigObject(widget.config);
+    const days = this.getIntegerConfig(config, 'days', 30, 1, 365);
+    const startDate = this.getStartDate(days);
+
+    const orders = await prisma.salesOrder.findMany({
+      where: {
+        dashboardId: widget.dashboardId,
+        orderDate: { gte: startDate },
+      },
+      select: {
+        orderDate: true,
+        totalAmount: true,
+      },
+      orderBy: {
+        orderDate: 'asc',
+      },
+    });
+
+    const totalsByDay = this.createSeededDailyMap(days, startDate, 0);
+    for (const order of orders) {
+      const key = this.toDayKey(order.orderDate);
+      totalsByDay.set(key, (totalsByDay.get(key) ?? 0) + Number(order.totalAmount ?? 0));
+    }
+
+    const points = Array.from(totalsByDay.entries()).map(([date, value]) => ({
+      date,
+      value: Number(value.toFixed(2)),
+    }));
+
+    if (widget.type === WidgetType.TABLE) {
+      return points;
+    }
+
+    return points.map((point) => ({
+      x: point.date,
+      y: point.value,
+    }));
+  }
+
+  private async getBusinessSalesOrdersGrouped(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget,
+    field: 'status' | 'region' | 'channel'
+  ) {
+    const grouped = (await (prisma.salesOrder.groupBy as any)({
+      by: [field],
+      where: {
+        dashboardId: widget.dashboardId,
+      },
+      _count: {
+        _all: true,
+      },
+      orderBy: {
+        [field]: 'asc',
+      },
+    })) as Array<{ _count: { _all: number }; [key: string]: unknown }>;
+
+    const rows = grouped.map((row) => ({
+      label: String(row[field]),
+      count: row._count._all,
+    }));
+
+    if (widget.type === WidgetType.TABLE) {
+      return rows;
+    }
+
+    return rows.map((row) => ({
+      x: row.label,
+      y: row.count,
+    }));
+  }
+
+  private async getBusinessMarketingLeadsConversionRate(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const [totalLeads, convertedLeads] = await Promise.all([
+      prisma.marketingLead.count({
+        where: {
+          dashboardId: widget.dashboardId,
+        },
+      }),
+      prisma.marketingLead.count({
+        where: {
+          dashboardId: widget.dashboardId,
+          isConverted: true,
+        },
+      }),
+    ]);
+
+    const rate = totalLeads === 0 ? 0 : Number(((convertedLeads / totalLeads) * 100).toFixed(2));
+
+    return [
+      {
+        x: 'Conversion Rate',
+        y: rate,
+      },
+    ];
+  }
+
+  private async getBusinessMarketingLeadsTimeline(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const config = this.getConfigObject(widget.config);
+    const days = this.getIntegerConfig(config, 'days', 30, 1, 365);
+    const startDate = this.getStartDate(days);
+
+    const leads = await prisma.marketingLead.findMany({
+      where: {
+        dashboardId: widget.dashboardId,
+        capturedAt: { gte: startDate },
+      },
+      select: {
+        capturedAt: true,
+      },
+      orderBy: {
+        capturedAt: 'asc',
+      },
+    });
+
+    const countsByDay = this.createSeededDailyMap(days, startDate, 0);
+    for (const lead of leads) {
+      const key = this.toDayKey(lead.capturedAt);
+      countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
+    }
+
+    const points = Array.from(countsByDay.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
+
+    if (widget.type === WidgetType.TABLE) {
+      return points;
+    }
+
+    return points.map((point) => ({
+      x: point.date,
+      y: point.count,
+    }));
+  }
+
+  private async getBusinessMarketingLeadsGrouped(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget,
+    field: 'channel' | 'stage'
+  ) {
+    const grouped = (await (prisma.marketingLead.groupBy as any)({
+      by: [field],
+      where: {
+        dashboardId: widget.dashboardId,
+      },
+      _count: {
+        _all: true,
+      },
+      orderBy: {
+        [field]: 'asc',
+      },
+    })) as Array<{ _count: { _all: number }; [key: string]: unknown }>;
+
+    const rows = grouped.map((row) => ({
+      label: String(row[field]),
+      count: row._count._all,
+    }));
+
+    if (widget.type === WidgetType.TABLE) {
+      return rows;
+    }
+
+    return rows.map((row) => ({
+      x: row.label,
+      y: row.count,
+    }));
+  }
+
+  private async getBusinessOperationsTicketsOpenCount(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const total = await prisma.operationsTicket.count({
+      where: {
+        dashboardId: widget.dashboardId,
+        status: {
+          in: [...OPEN_OPERATIONS_TICKET_STATUSES],
+        },
+      },
+    });
+
+    return [
+      {
+        x: 'Open Tickets',
+        y: total,
+      },
+    ];
+  }
+
+  private async getBusinessOperationsTicketsTimeline(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const config = this.getConfigObject(widget.config);
+    const days = this.getIntegerConfig(config, 'days', 30, 1, 365);
+    const startDate = this.getStartDate(days);
+
+    const tickets = await prisma.operationsTicket.findMany({
+      where: {
+        dashboardId: widget.dashboardId,
+        openedAt: { gte: startDate },
+      },
+      select: {
+        openedAt: true,
+      },
+      orderBy: {
+        openedAt: 'asc',
+      },
+    });
+
+    const countsByDay = this.createSeededDailyMap(days, startDate, 0);
+    for (const ticket of tickets) {
+      const key = this.toDayKey(ticket.openedAt);
+      countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
+    }
+
+    const points = Array.from(countsByDay.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
+
+    if (widget.type === WidgetType.TABLE) {
+      return points;
+    }
+
+    return points.map((point) => ({
+      x: point.date,
+      y: point.count,
+    }));
+  }
+
+  private async getBusinessOperationsTicketsByPriority(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const grouped = await prisma.operationsTicket.groupBy({
+      by: ['priority'],
+      where: {
+        dashboardId: widget.dashboardId,
+      },
+      _count: {
+        _all: true,
+      },
+      orderBy: {
+        priority: 'asc',
+      },
+    });
+
+    const rows = grouped.map((row) => ({
+      label: row.priority,
+      count: row._count._all,
+    }));
+
+    if (widget.type === WidgetType.TABLE) {
+      return rows;
+    }
+
+    return rows.map((row) => ({
+      x: row.label,
+      y: row.count,
+    }));
+  }
+
+  private async getBusinessOperationsSlaComplianceRate(
+    prisma: WidgetDataProviderContext['prisma'],
+    widget: Widget
+  ) {
+    const [resolvedCount, compliantCount] = await Promise.all([
+      prisma.operationsTicket.count({
+        where: {
+          dashboardId: widget.dashboardId,
+          resolvedAt: { not: null },
+        },
+      }),
+      prisma.operationsTicket.count({
+        where: {
+          dashboardId: widget.dashboardId,
+          resolvedAt: { not: null },
+          slaBreached: false,
+        },
+      }),
+    ]);
+
+    const rate = resolvedCount === 0 ? 0 : Number(((compliantCount / resolvedCount) * 100).toFixed(2));
+
+    return [
+      {
+        x: 'SLA Compliance',
+        y: rate,
+      },
+    ];
+  }
+
   private buildWidgetFilterWhere(filters?: Filter[]): Prisma.WidgetWhereInput {
     const conditions = (filters ?? [])
       .map((filter) => this.buildWidgetFilterCondition(filter))
@@ -306,7 +658,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
       }
       case 'ne': {
         const value = this.parseStringValue(filter.value);
-        return value !== null ? ({ NOT: { [fieldName]: value } } as TWhere) : null;
+        return value !== null ? ({ NOT: { [fieldName]: value } } as unknown as TWhere) : null;
       }
       case 'contains': {
         const value = this.parseStringValue(filter.value);
@@ -335,7 +687,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
       }
       case 'ne': {
         const value = this.parseBooleanValue(filter.value, options);
-        return value !== null ? ({ NOT: { [fieldName]: value } } as TWhere) : null;
+        return value !== null ? ({ NOT: { [fieldName]: value } } as unknown as TWhere) : null;
       }
       default:
         return null;
@@ -355,7 +707,7 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
       case 'eq':
         return { [fieldName]: value } as TWhere;
       case 'ne':
-        return { NOT: { [fieldName]: value } } as TWhere;
+        return { NOT: { [fieldName]: value } } as unknown as TWhere;
       case 'gt':
       case 'gte':
       case 'lt':
@@ -499,6 +851,22 @@ export class PrismaDashboardWidgetDataProvider implements WidgetDataProvider {
 
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private toDayKey(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private createSeededDailyMap(days: number, startDate: Date, initialValue: number): Map<string, number> {
+    const values = new Map<string, number>();
+
+    for (let offset = 0; offset < days; offset += 1) {
+      const day = new Date(startDate);
+      day.setUTCDate(startDate.getUTCDate() + offset);
+      values.set(this.toDayKey(day), initialValue);
+    }
+
+    return values;
   }
 
   private getConfigObject(config: unknown): JsonRecord {

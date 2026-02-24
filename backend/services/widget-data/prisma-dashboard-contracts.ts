@@ -42,6 +42,24 @@ const widgetsTimelineTableSchema = z.array(
     .passthrough()
 );
 
+const labelCountTableSchema = z.array(
+  z
+    .object({
+      label: z.string(),
+      count: z.number(),
+    })
+    .passthrough()
+);
+
+const dateValueTableSchema = z.array(
+  z
+    .object({
+      date: z.string(),
+      value: z.number(),
+    })
+    .passthrough()
+);
+
 const upcomingSchedulesTableSchema = z.array(
   z
     .object({
@@ -96,6 +114,58 @@ const PRISMA_DASHBOARD_WIDGET_DATA_SOURCE_CONTRACTS: Record<
       }
       return upcomingSchedulesTableSchema;
     },
+  },
+  'prisma:business.sales.revenue.total': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: () => xySeriesSchema,
+  },
+  'prisma:business.sales.revenue.timeline': {
+    configSchema: prismaDashboardTimelineConfigSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? dateValueTableSchema : xySeriesSchema),
+  },
+  'prisma:business.sales.orders.by_status': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? labelCountTableSchema : xySeriesSchema),
+  },
+  'prisma:business.sales.orders.by_region': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? labelCountTableSchema : xySeriesSchema),
+  },
+  'prisma:business.sales.orders.by_channel': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? labelCountTableSchema : xySeriesSchema),
+  },
+  'prisma:business.marketing.leads.conversion_rate': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: () => xySeriesSchema,
+  },
+  'prisma:business.marketing.leads.timeline': {
+    configSchema: prismaDashboardTimelineConfigSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? widgetsTimelineTableSchema : xySeriesSchema),
+  },
+  'prisma:business.marketing.leads.by_channel': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? labelCountTableSchema : xySeriesSchema),
+  },
+  'prisma:business.marketing.leads.by_stage': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? labelCountTableSchema : xySeriesSchema),
+  },
+  'prisma:business.operations.tickets.open_count': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: () => xySeriesSchema,
+  },
+  'prisma:business.operations.tickets.timeline': {
+    configSchema: prismaDashboardTimelineConfigSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? widgetsTimelineTableSchema : xySeriesSchema),
+  },
+  'prisma:business.operations.tickets.by_priority': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: (widgetType) => (widgetType === WidgetType.TABLE ? labelCountTableSchema : xySeriesSchema),
+  },
+  'prisma:business.operations.sla.compliance_rate': {
+    configSchema: passthroughObjectSchema,
+    outputSchema: () => xySeriesSchema,
   },
 };
 

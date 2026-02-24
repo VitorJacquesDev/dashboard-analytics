@@ -205,7 +205,7 @@ export function WidgetCreateModal({
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Adicionar Widget</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Selecione uma fonte real (`prisma:dashboard.*`) ou use dataSource manual.
+              Selecione uma fonte real (`prisma:*`) ou use dataSource manual.
             </p>
           </div>
           <button
@@ -288,7 +288,7 @@ export function WidgetCreateModal({
               onChange={(e) => setDataSource(e.target.value)}
               disabled={selectedPreset.key !== 'custom'}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-800 disabled:opacity-70"
-              placeholder="ex.: prisma:dashboard.widgets.count"
+              placeholder="ex.: prisma:business.sales.revenue.timeline"
               required
             />
           </div>
@@ -308,7 +308,7 @@ export function WidgetCreateModal({
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-800"
                 />
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Usado por `prisma:dashboard.widgets.timeline` (1-365).
+                  Usado por fontes de timeline `prisma:*` (1-365).
                 </p>
               </div>
             </div>

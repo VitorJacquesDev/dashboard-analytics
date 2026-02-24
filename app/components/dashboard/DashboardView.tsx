@@ -147,7 +147,7 @@ export function DashboardView({ dashboard, widgets }: DashboardViewProps) {
             </div>
 
             {/* Filters */}
-            <FilterBar />
+            <FilterBar widgets={localWidgets} />
 
             {/* Widget Grid */}
             {localWidgets.length > 0 ? (

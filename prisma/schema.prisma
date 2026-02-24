@@ -26,41 +26,114 @@ model User {
 }
 
 model ProfileSettings {
-  id                    String   @id @default(uuid())
-  userId                String   @unique
-  avatarUrl             String?
-  bio                   String?
-  language              String   @default("pt-BR")
-  timezone              String   @default("America/Sao_Paulo")
-  theme                 Theme    @default(LIGHT)
-  emailNotifications    Boolean  @default(true)
-  pushNotifications     Boolean  @default(false)
-  weeklyReportEnabled   Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  avatarUrl           String?
+  bio                 String?
+  language            String   @default("pt-BR")
+  timezone            String   @default("America/Sao_Paulo")
+  theme               Theme    @default(LIGHT)
+  emailNotifications  Boolean  @default(true)
+  pushNotifications   Boolean  @default(false)
+  weeklyReportEnabled Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("profile_settings")
 }
 
 model Dashboard {
-  id          String           @id @default(uuid())
-  title       String
-  description String?
-  userId      String
-  isPublic    Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  shares      DashboardShare[]
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  layouts     Layout[]
-  widgets     Widget[]
-  schedules   Schedule[]
+  id                String             @id @default(uuid())
+  title             String
+  description       String?
+  userId            String
+  isPublic          Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  shares            DashboardShare[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  layouts           Layout[]
+  widgets           Widget[]
+  schedules         Schedule[]
+  salesOrders       SalesOrder[]
+  marketingLeads    MarketingLead[]
+  operationsTickets OperationsTicket[]
 
   @@index([userId])
   @@index([createdAt])
   @@map("dashboards")
+}
+
+model SalesOrder {
+  id           String    @id @default(uuid())
+  dashboardId  String
+  orderNumber  String
+  customerName String
+  region       String
+  channel      String
+  status       String
+  orderDate    DateTime
+  totalAmount  Float
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  dashboard    Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardId])
+  @@index([orderDate])
+  @@index([status])
+  @@index([region])
+  @@index([channel])
+  @@map("sales_orders")
+}
+
+model MarketingLead {
+  id              String    @id @default(uuid())
+  dashboardId     String
+  leadName        String
+  channel         String
+  campaign        String
+  stage           String
+  isConverted     Boolean   @default(false)
+  estimatedValue  Float?
+  acquisitionCost Float?
+  capturedAt      DateTime
+  convertedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  dashboard       Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardId])
+  @@index([capturedAt])
+  @@index([channel])
+  @@index([campaign])
+  @@index([stage])
+  @@index([isConverted])
+  @@map("marketing_leads")
+}
+
+model OperationsTicket {
+  id                String    @id @default(uuid())
+  dashboardId       String
+  title             String
+  team              String
+  priority          String
+  status            String
+  openedAt          DateTime
+  resolvedAt        DateTime?
+  resolutionMinutes Int?
+  slaBreached       Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  dashboard         Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardId])
+  @@index([openedAt])
+  @@index([status])
+  @@index([priority])
+  @@index([slaBreached])
+  @@map("operations_tickets")
 }
 
 model Widget {

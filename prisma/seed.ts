@@ -3,12 +3,36 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomFloat(min: number, max: number, decimals = 2): number {
+  const value = Math.random() * (max - min) + min;
+  return Number(value.toFixed(decimals));
+}
+
+function randomPick<T>(items: readonly T[]): T {
+  return items[randomInt(0, items.length - 1)];
+}
+
+function randomDateWithinLastDays(days: number): Date {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - (days - 1));
+  const timestamp = randomInt(start.getTime(), now.getTime());
+  return new Date(timestamp);
+}
+
 async function main() {
   console.log('🌱 Starting database seeding...');
 
   // Clear existing data (in development only)
   if (process.env.NODE_ENV === 'development') {
     console.log('🧹 Cleaning existing data...');
+    await prisma.operationsTicket.deleteMany();
+    await prisma.marketingLead.deleteMany();
+    await prisma.salesOrder.deleteMany();
     await prisma.schedule.deleteMany();
     await prisma.dashboardShare.deleteMany();
     await prisma.layout.deleteMany();
@@ -86,6 +110,120 @@ async function main() {
   });
   console.log(`✅ Created dashboard: ${operationsDashboard.title}`);
 
+  // Create business-domain records used by real Prisma widget sources
+  console.log('💼 Creating business-domain records...');
+
+  const salesRegions = ['LATAM', 'North America', 'EMEA', 'APAC'] as const;
+  const salesChannels = ['Direct', 'Partner', 'Online', 'Inside Sales'] as const;
+
+  const salesOrders = Array.from({ length: 160 }, (_, index) => {
+    const orderDate = randomDateWithinLastDays(60);
+    const statusRoll = Math.random();
+    const status =
+      statusRoll < 0.62
+        ? 'PAID'
+        : statusRoll < 0.8
+          ? 'PROCESSING'
+          : statusRoll < 0.92
+            ? 'PENDING'
+            : 'CANCELLED';
+
+    const amountBase = status === 'CANCELLED' ? randomFloat(50, 600) : randomFloat(200, 6500);
+
+    return {
+      dashboardId: salesDashboard.id,
+      orderNumber: `SO-${String(index + 1).padStart(5, '0')}`,
+      customerName: `Customer ${index + 1}`,
+      region: randomPick(salesRegions),
+      channel: randomPick(salesChannels),
+      status,
+      orderDate,
+      totalAmount: amountBase,
+      createdAt: orderDate,
+      updatedAt: orderDate,
+    };
+  });
+
+  await prisma.salesOrder.createMany({ data: salesOrders });
+  console.log(`✅ Created ${salesOrders.length} sales orders`);
+
+  const marketingChannels = ['Organic', 'Paid Search', 'Social', 'Email', 'Referral'] as const;
+  const marketingCampaigns = ['Brand Awareness', 'Spring Launch', 'Retention Push', 'ABM Enterprise'] as const;
+  const marketingStages = ['Captured', 'Qualified', 'Proposal', 'Won', 'Lost'] as const;
+
+  const marketingLeads = Array.from({ length: 220 }, (_, index) => {
+    const capturedAt = randomDateWithinLastDays(60);
+    const stage = randomPick(marketingStages);
+    const isConverted = stage === 'Won' ? true : stage === 'Lost' ? false : Math.random() < 0.18;
+    const convertedAt = isConverted
+      ? new Date(capturedAt.getTime() + randomInt(1, 14) * 24 * 60 * 60 * 1000)
+      : null;
+
+    return {
+      dashboardId: marketingDashboard.id,
+      leadName: `Lead ${index + 1}`,
+      channel: randomPick(marketingChannels),
+      campaign: randomPick(marketingCampaigns),
+      stage,
+      isConverted,
+      estimatedValue: randomFloat(500, 25000),
+      acquisitionCost: randomFloat(20, 1200),
+      capturedAt,
+      convertedAt,
+      createdAt: capturedAt,
+      updatedAt: convertedAt ?? capturedAt,
+    };
+  });
+
+  await prisma.marketingLead.createMany({ data: marketingLeads });
+  console.log(`✅ Created ${marketingLeads.length} marketing leads`);
+
+  const opsTeams = ['Platform', 'Infra', 'Fulfillment', 'Support'] as const;
+  const opsPriorities = ['P1', 'P2', 'P3', 'P4'] as const;
+
+  const operationsTickets = Array.from({ length: 140 }, (_, index) => {
+    const openedAt = randomDateWithinLastDays(45);
+    const priority = randomPick(opsPriorities);
+    const statusRoll = Math.random();
+    const status =
+      statusRoll < 0.22
+        ? 'OPEN'
+        : statusRoll < 0.48
+          ? 'IN_PROGRESS'
+          : statusRoll < 0.56
+            ? 'BLOCKED'
+            : statusRoll < 0.88
+              ? 'RESOLVED'
+              : 'CLOSED';
+
+    const isResolved = status === 'RESOLVED' || status === 'CLOSED';
+    const resolutionMinutes = isResolved ? randomInt(30, 7 * 24 * 60) : null;
+    const resolvedAt = isResolved
+      ? new Date(openedAt.getTime() + (resolutionMinutes ?? 0) * 60 * 1000)
+      : null;
+
+    const slaThresholdMinutes =
+      priority === 'P1' ? 4 * 60 : priority === 'P2' ? 8 * 60 : priority === 'P3' ? 24 * 60 : 48 * 60;
+    const slaBreached = isResolved ? (resolutionMinutes ?? 0) > slaThresholdMinutes : Math.random() < 0.08;
+
+    return {
+      dashboardId: operationsDashboard.id,
+      title: `Incident ${index + 1}`,
+      team: randomPick(opsTeams),
+      priority,
+      status,
+      openedAt,
+      resolvedAt,
+      resolutionMinutes,
+      slaBreached,
+      createdAt: openedAt,
+      updatedAt: resolvedAt ?? openedAt,
+    };
+  });
+
+  await prisma.operationsTicket.createMany({ data: operationsTickets });
+  console.log(`✅ Created ${operationsTickets.length} operations tickets`);
+
   // Create widgets for Sales Dashboard
   console.log('📈 Creating widgets...');
 
@@ -93,14 +231,12 @@ async function main() {
     data: {
       dashboardId: salesDashboard.id,
       type: WidgetType.LINE_CHART,
-      title: 'Monthly Revenue Trend',
-      dataSource: 'sales.revenue',
+      title: 'Receita por Dia',
+      dataSource: 'prisma:business.sales.revenue.timeline',
       config: {
-        xAxis: 'month',
-        yAxis: 'revenue',
+        days: 30,
         color: '#3b82f6',
         showGrid: true,
-        enableZoom: true,
       },
     },
   });
@@ -109,11 +245,9 @@ async function main() {
     data: {
       dashboardId: salesDashboard.id,
       type: WidgetType.BAR_CHART,
-      title: 'Sales by Region',
-      dataSource: 'sales.by_region',
+      title: 'Pedidos por Região',
+      dataSource: 'prisma:business.sales.orders.by_region',
       config: {
-        xAxis: 'region',
-        yAxis: 'sales',
         color: '#10b981',
         orientation: 'vertical',
       },
@@ -124,11 +258,9 @@ async function main() {
     data: {
       dashboardId: salesDashboard.id,
       type: WidgetType.PIE_CHART,
-      title: 'Product Mix',
-      dataSource: 'sales.product_mix',
+      title: 'Pedidos por Canal',
+      dataSource: 'prisma:business.sales.orders.by_channel',
       config: {
-        labelField: 'product',
-        valueField: 'percentage',
         showLegend: true,
       },
     },
@@ -138,12 +270,11 @@ async function main() {
     data: {
       dashboardId: salesDashboard.id,
       type: WidgetType.METRIC,
-      title: 'Total Revenue',
-      dataSource: 'sales.total_revenue',
+      title: 'Receita Total',
+      dataSource: 'prisma:business.sales.revenue.total',
       config: {
         format: 'currency',
         prefix: '$',
-        showTrend: true,
       },
     },
   });
@@ -155,12 +286,10 @@ async function main() {
     data: {
       dashboardId: marketingDashboard.id,
       type: WidgetType.AREA_CHART,
-      title: 'Conversion Funnel',
-      dataSource: 'marketing.conversion_funnel',
+      title: 'Leads por Dia',
+      dataSource: 'prisma:business.marketing.leads.timeline',
       config: {
-        xAxis: 'stage',
-        yAxis: 'count',
-        stacked: true,
+        days: 30,
         colors: ['#8b5cf6', '#ec4899', '#f59e0b'],
       },
     },
@@ -169,14 +298,11 @@ async function main() {
   const campaignPerformanceWidget = await prisma.widget.create({
     data: {
       dashboardId: marketingDashboard.id,
-      type: WidgetType.SCATTER_CHART,
-      title: 'Campaign Performance',
-      dataSource: 'marketing.campaigns',
+      type: WidgetType.BAR_CHART,
+      title: 'Leads por Canal',
+      dataSource: 'prisma:business.marketing.leads.by_channel',
       config: {
-        xAxis: 'spend',
-        yAxis: 'roi',
-        sizeField: 'impressions',
-        colorField: 'channel',
+        color: '#f59e0b',
       },
     },
   });
@@ -184,14 +310,11 @@ async function main() {
   const heatmapWidget = await prisma.widget.create({
     data: {
       dashboardId: marketingDashboard.id,
-      type: WidgetType.HEATMAP,
-      title: 'User Activity Heatmap',
-      dataSource: 'marketing.user_activity',
+      type: WidgetType.TABLE,
+      title: 'Funil por Etapa',
+      dataSource: 'prisma:business.marketing.leads.by_stage',
       config: {
-        xAxis: 'hour',
-        yAxis: 'day',
-        valueField: 'activity',
-        colorScale: 'blues',
+        sortable: true,
       },
     },
   });
@@ -203,12 +326,10 @@ async function main() {
     data: {
       dashboardId: operationsDashboard.id,
       type: WidgetType.TABLE,
-      title: 'Key Performance Indicators',
-      dataSource: 'operations.kpis',
+      title: 'Tickets por Prioridade',
+      dataSource: 'prisma:business.operations.tickets.by_priority',
       config: {
-        columns: ['metric', 'current', 'target', 'status'],
         sortable: true,
-        filterable: true,
       },
     },
   });
@@ -217,11 +338,10 @@ async function main() {
     data: {
       dashboardId: operationsDashboard.id,
       type: WidgetType.LINE_CHART,
-      title: 'System Uptime',
-      dataSource: 'operations.uptime',
+      title: 'Tickets por Dia',
+      dataSource: 'prisma:business.operations.tickets.timeline',
       config: {
-        xAxis: 'timestamp',
-        yAxis: 'uptime_percentage',
+        days: 30,
         color: '#059669',
         showGrid: true,
       },

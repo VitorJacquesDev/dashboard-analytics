@@ -21,6 +21,8 @@
 .DS_Store
 *.pem
 *.sql
+!prisma/migrations/20260225170000_add_system_theme_enum/migration.sql
+!prisma/migrations/20260225170100_set_profile_settings_theme_default_system/migration.sql
 *.sqlite
 
 # debug
@@ -77,4 +79,3 @@ playwright/.cache/
 
 # Uploads
 /public/uploads
-

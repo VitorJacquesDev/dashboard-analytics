@@ -13,7 +13,7 @@ interface ProfileSettings {
     email: string;
 }
 
-type BackendTheme = 'LIGHT' | 'DARK';
+type BackendTheme = 'LIGHT' | 'DARK' | 'SYSTEM';
 
 interface BackendProfileSettings {
     language: string;
@@ -27,22 +27,24 @@ function normalizeLanguage(language: string) {
     return language === 'es' ? 'es-ES' : language;
 }
 
-function mapBackendThemeToUi(theme: BackendTheme): 'light' | 'dark' {
+function mapBackendThemeToUi(theme: BackendTheme): 'light' | 'dark' | 'system' {
+    if (theme === 'SYSTEM') {
+        return 'system';
+    }
     return theme === 'DARK' ? 'dark' : 'light';
 }
 
-function mapUiThemeToBackend(
-    theme: 'light' | 'dark' | 'system',
-    resolvedTheme: 'light' | 'dark'
-): BackendTheme {
-    const effectiveTheme = theme === 'system' ? resolvedTheme : theme;
-    return effectiveTheme === 'dark' ? 'DARK' : 'LIGHT';
+function mapUiThemeToBackend(theme: 'light' | 'dark' | 'system'): BackendTheme {
+    if (theme === 'system') {
+        return 'SYSTEM';
+    }
+    return theme === 'dark' ? 'DARK' : 'LIGHT';
 }
 
 export default function SettingsPage() {
     const router = useRouter();
     const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
-    const { theme, setTheme, resolvedTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
     const { 
         language, 
         notifications, 
@@ -134,7 +136,7 @@ export default function SettingsPage() {
         try {
             await apiClient.put<BackendProfileSettings>('/profile-settings', {
                 language: normalizeLanguage(language),
-                theme: mapUiThemeToBackend(theme, resolvedTheme),
+                theme: mapUiThemeToBackend(theme),
                 emailNotifications: notifications.email,
                 pushNotifications: notifications.push,
                 weeklyReportEnabled: notifications.weekly,

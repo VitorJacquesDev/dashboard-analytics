@@ -74,7 +74,7 @@ jest.mock('@prisma/client', () => {
       TABLE: 'TABLE',
       METRIC: 'METRIC',
     },
-    Theme: { LIGHT: 'LIGHT', DARK: 'DARK' },
+    Theme: { LIGHT: 'LIGHT', DARK: 'DARK', SYSTEM: 'SYSTEM' },
     Permission: { VIEW: 'VIEW', EDIT: 'EDIT', ADMIN: 'ADMIN' },
     ExportFormat: { PDF: 'PDF', CSV: 'CSV', XLSX: 'XLSX' },
   };

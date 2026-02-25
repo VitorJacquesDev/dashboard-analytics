@@ -39,6 +39,7 @@ export type WidgetType = PrismaWidgetType;
 export const Theme: PrismaEnumObject<PrismaTheme> = {
   LIGHT: 'LIGHT',
   DARK: 'DARK',
+  SYSTEM: 'SYSTEM',
 };
 export type Theme = PrismaTheme;
 

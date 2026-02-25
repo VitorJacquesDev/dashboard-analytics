@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "Theme" ADD VALUE IF NOT EXISTS 'SYSTEM';

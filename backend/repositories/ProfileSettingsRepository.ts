@@ -44,7 +44,7 @@ export class ProfileSettingsRepository extends BaseRepository {
         bio: data.bio,
         language: data.language || 'pt-BR',
         timezone: data.timezone || 'America/Sao_Paulo',
-        theme: data.theme || Theme.LIGHT,
+        theme: data.theme || Theme.SYSTEM,
         emailNotifications: data.emailNotifications ?? true,
         pushNotifications: data.pushNotifications ?? false,
         weeklyReportEnabled: data.weeklyReportEnabled ?? true,

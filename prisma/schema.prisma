@@ -32,7 +32,7 @@ model ProfileSettings {
   bio                 String?
   language            String   @default("pt-BR")
   timezone            String   @default("America/Sao_Paulo")
-  theme               Theme    @default(LIGHT)
+  theme               Theme    @default(SYSTEM)
   emailNotifications  Boolean  @default(true)
   pushNotifications   Boolean  @default(false)
   weeklyReportEnabled Boolean  @default(true)
@@ -226,6 +226,7 @@ enum WidgetType {
 enum Theme {
   LIGHT
   DARK
+  SYSTEM
 }
 
 enum Permission {

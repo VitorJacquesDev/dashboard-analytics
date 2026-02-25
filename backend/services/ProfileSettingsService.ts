@@ -8,6 +8,7 @@ import { UserRepository } from '../repositories/UserRepository';
 import { ProfileSettings } from '@/lib/types';
 
 const VALID_LANGUAGES = ['pt-BR', 'en-US', 'es-ES', 'fr-FR', 'de-DE'];
+const VALID_THEMES = Object.values(Theme) as Theme[];
 const VALID_TIMEZONES = [
   'America/Sao_Paulo',
   'America/New_York',
@@ -56,6 +57,11 @@ export class ProfileSettingsService {
     // Validate timezone
     if (data.timezone && !VALID_TIMEZONES.includes(data.timezone)) {
       throw new Error(`Invalid timezone. Valid options: ${VALID_TIMEZONES.join(', ')}`);
+    }
+
+    // Validate theme
+    if (data.theme && !VALID_THEMES.includes(data.theme)) {
+      throw new Error(`Invalid theme. Valid options: ${VALID_THEMES.join(', ')}`);
     }
 
     // Validate bio length
@@ -112,6 +118,11 @@ export class ProfileSettingsService {
       throw new Error(`Invalid timezone. Valid options: ${VALID_TIMEZONES.join(', ')}`);
     }
 
+    // Validate theme
+    if (data.theme && !VALID_THEMES.includes(data.theme)) {
+      throw new Error(`Invalid theme. Valid options: ${VALID_THEMES.join(', ')}`);
+    }
+
     // Validate bio length
     if (data.bio && data.bio.length > 500) {
       throw new Error('Bio must be 500 characters or less');
@@ -157,7 +168,7 @@ export class ProfileSettingsService {
       bio: null,
       language: 'pt-BR',
       timezone: 'America/Sao_Paulo',
-      theme: Theme.LIGHT,
+      theme: Theme.SYSTEM,
       emailNotifications: true,
       pushNotifications: false,
       weeklyReportEnabled: true,
@@ -179,6 +190,13 @@ export class ProfileSettingsService {
    */
   getAvailableTimezones(): string[] {
     return VALID_TIMEZONES;
+  }
+
+  /**
+   * Get available themes
+   */
+  getAvailableThemes(): Theme[] {
+    return VALID_THEMES;
   }
 }
 

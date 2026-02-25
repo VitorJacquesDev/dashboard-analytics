@@ -97,11 +97,11 @@ export class ProfileSettingsController {
    * Get available options (languages, timezones)
    * GET /api/profile-settings/options
    */
-  async getOptions(_req: NextRequest) {
+  async getOptions() {
     return NextResponse.json({
       languages: profileSettingsService.getAvailableLanguages(),
       timezones: profileSettingsService.getAvailableTimezones(),
-      themes: ['LIGHT', 'DARK'],
+      themes: profileSettingsService.getAvailableThemes(),
     });
   }
 }

@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/app/components/layout/MainLayout';
+import { useTheme } from '@/app/providers/ThemeProvider';
+import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSettingsStore, NotificationSettings } from '@/store/useSettingsStore';
 
@@ -11,14 +13,40 @@ interface ProfileSettings {
     email: string;
 }
 
+type BackendTheme = 'LIGHT' | 'DARK';
+
+interface BackendProfileSettings {
+    language: string;
+    theme: BackendTheme;
+    emailNotifications: boolean;
+    pushNotifications: boolean;
+    weeklyReportEnabled: boolean;
+}
+
+function normalizeLanguage(language: string) {
+    return language === 'es' ? 'es-ES' : language;
+}
+
+function mapBackendThemeToUi(theme: BackendTheme): 'light' | 'dark' {
+    return theme === 'DARK' ? 'dark' : 'light';
+}
+
+function mapUiThemeToBackend(
+    theme: 'light' | 'dark' | 'system',
+    resolvedTheme: 'light' | 'dark'
+): BackendTheme {
+    const effectiveTheme = theme === 'system' ? resolvedTheme : theme;
+    return effectiveTheme === 'dark' ? 'DARK' : 'LIGHT';
+}
+
 export default function SettingsPage() {
     const router = useRouter();
     const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
+    const { theme, setTheme, resolvedTheme } = useTheme();
     const { 
-        theme, 
         language, 
         notifications, 
-        setTheme, 
+        setTheme: setSettingsTheme,
         setLanguage, 
         setNotifications 
     } = useSettingsStore();
@@ -26,6 +54,7 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'appearance' | 'security'>('profile');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const hasLoadedBackendSettingsRef = useRef(false);
     
     const [profileSettings, setProfileSettings] = useState<ProfileSettings>({
         displayName: user?.name || '',
@@ -47,16 +76,77 @@ export default function SettingsPage() {
         }
     }, [user]);
 
+    useEffect(() => {
+        if (!isAuthenticated) {
+            hasLoadedBackendSettingsRef.current = false;
+            return;
+        }
+
+        if (hasLoadedBackendSettingsRef.current) {
+            return;
+        }
+
+        hasLoadedBackendSettingsRef.current = true;
+
+        let cancelled = false;
+
+        const loadProfileSettings = async () => {
+            try {
+                const backendSettings = await apiClient.get<BackendProfileSettings>('/profile-settings');
+                if (cancelled) {
+                    return;
+                }
+
+                const backendTheme = mapBackendThemeToUi(backendSettings.theme);
+
+                setTheme(backendTheme);
+                setSettingsTheme(backendTheme);
+                setLanguage(normalizeLanguage(backendSettings.language));
+                setNotifications({
+                    email: backendSettings.emailNotifications,
+                    push: backendSettings.pushNotifications,
+                    weekly: backendSettings.weeklyReportEnabled,
+                });
+            } catch (error) {
+                if (!cancelled) {
+                    hasLoadedBackendSettingsRef.current = false;
+                    console.error('Erro ao carregar preferências do perfil:', error);
+                }
+            }
+        };
+
+        loadProfileSettings();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isAuthenticated, setLanguage, setNotifications, setSettingsTheme, setTheme]);
+
+    const handleThemeChange = (nextTheme: 'light' | 'dark' | 'system') => {
+        setTheme(nextTheme);
+        setSettingsTheme(nextTheme);
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         setSaveMessage(null);
         
         try {
-            // Simular salvamento do perfil (as outras configs já são salvas automaticamente nos cookies)
-            await new Promise(resolve => setTimeout(resolve, 500));
-            setSaveMessage({ type: 'success', text: 'Configurações salvas com sucesso!' });
-        } catch {
-            setSaveMessage({ type: 'error', text: 'Erro ao salvar configurações.' });
+            await apiClient.put<BackendProfileSettings>('/profile-settings', {
+                language: normalizeLanguage(language),
+                theme: mapUiThemeToBackend(theme, resolvedTheme),
+                emailNotifications: notifications.email,
+                pushNotifications: notifications.push,
+                weeklyReportEnabled: notifications.weekly,
+            });
+
+            setSaveMessage({
+                type: 'success',
+                text: 'Preferências de tema/idioma/notificações salvas no servidor.',
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Erro ao salvar configurações.';
+            setSaveMessage({ type: 'error', text: message });
         } finally {
             setIsSaving(false);
         }
@@ -134,7 +224,7 @@ export default function SettingsPage() {
                         />
                     )}
                     {activeTab === 'appearance' && (
-                        <AppearanceSettingsTab theme={theme} setTheme={setTheme} />
+                        <AppearanceSettingsTab theme={theme} setTheme={handleThemeChange} />
                     )}
                     {activeTab === 'security' && (
                         <SecuritySettings />
@@ -220,7 +310,7 @@ function ProfileSettingsTab({
                     >
                         <option value="pt-BR">Português (Brasil)</option>
                         <option value="en-US">English (US)</option>
-                        <option value="es">Español</option>
+                        <option value="es-ES">Español</option>
                     </select>
                 </div>
             </div>

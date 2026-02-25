@@ -24,16 +24,35 @@ class ApiClient {
         try {
             const response = await fetch(`${API_URL}${endpoint}`, config);
 
-            if (response.status === 401) {
-                logout();
-                throw new Error('Unauthorized');
-            }
-
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.message ||
-                    (typeof errorData.error === 'string' ? errorData.error : errorData.error?.message) ||
-                    'An error occurred';
+                const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+                const rawErrorBody = await response.text().catch(() => '');
+
+                let errorMessage = '';
+
+                if (rawErrorBody && contentType.includes('application/json')) {
+                    try {
+                        const errorData = JSON.parse(rawErrorBody);
+                        errorMessage = errorData.message ||
+                            (typeof errorData.error === 'string' ? errorData.error : errorData.error?.message) ||
+                            '';
+                    } catch {
+                        // Fall back to status/text parsing below when a server mislabels HTML as JSON.
+                    }
+                }
+
+                if (!errorMessage && rawErrorBody && !contentType.includes('text/html')) {
+                    errorMessage = rawErrorBody.trim().slice(0, 300);
+                }
+
+                if (!errorMessage) {
+                    errorMessage = `Request failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})`;
+                }
+
+                if (response.status === 401) {
+                    logout();
+                }
+
                 throw new Error(errorMessage);
             }
 
